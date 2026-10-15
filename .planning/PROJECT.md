@@ -58,7 +58,7 @@ Participants in an event can see what someone wishes for and coordinate who buys
 - **Tech stack**: Django (existing project, Django 5.1) — keep building on it
 - **Timeline**: Must be usable by the author's family for Christmas 2026 (≈ early-mid December 2026; today is 2026-10-15) — roughly 8 weeks of build time
 - **Security/privacy**: Giftee must never be able to see claims on their own Wishes, via UI or URL guessing — this is the core promise
-- **Hosting**: Public internet deployment — needs production settings (secrets, HTTPS, allowed hosts, static files)
+- **Hosting**: Bombur VPS at `https://gifter.remesh.cz` following the bombur-infra conventions (Docker Compose, Caddy, GitHub Actions → GHCR → SSH deploy; reference app `~/GIT/plachtis`) — needs production settings (secrets from `.env`, HTTPS, allowed hosts, static files)
 
 ## Key Decisions
 
@@ -72,6 +72,11 @@ Participants in an event can see what someone wishes for and coordinate who buys
 | Invite link for joining | Easy to share via chat apps | — Pending |
 | EN + CZ i18n from start | Users span both languages; retrofitting i18n is costly | — Pending |
 | Receipt closes wish without revealing giver | Keeps secrecy simple | — Pending |
+| Claimer names visible only to viewers sharing an event with the claimer ("taken" shown everywhere) | No duplicates across events without exposing names to strangers | — Pending |
+| Owner can always edit/withdraw claimed wishes, identical UI | Any claim-aware owner UI leaks secrecy | — Pending |
+| Upgrade to Django 6.1 | 5.1 is EOL; tiny codebase makes it cheap now | — Pending |
+| Host on Bombur (gifter.remesh.cz) with SQLite in bind-mounted ./data | Matches existing personal infra (plachtis); backup = copy dir | — Pending |
+| Custom user model before first prod migration | Costly to retrofit later | — Pending |
 
 ## Evolution
 
@@ -91,4 +96,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-10-15 after initialization*
+*Last updated: 2026-10-16 after requirements definition*
