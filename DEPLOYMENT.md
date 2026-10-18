@@ -1,21 +1,25 @@
 # Deploying Gifter
 
 Short operating manual for future-you. The infrastructure conventions come from the
-`bombur-infra` skill; the reference app is `~/GIT/plachtis`.
+`bombur-infra` skill; the deploy tooling is `ciakval/bombur-deploy` (local clone
+`~/GIT/bombur-deploy`, its README is the source of truth).
 
 ## Overview
 
 | Thing | Value |
 |---|---|
-| Domain | https://gifter.remesh.cz (CNAME to `bombur.remesh.cz`) |
-| Deploy dir on Bombur | `/home/plachtis/DOCKER/gifter` (default deploy user `plachtis`; the same path appears in `.github/workflows/deploy.yml`) |
+| Domain | https://gifter.remesh.cz (covered by the `*.remesh.cz` wildcard CNAME to `bombur.remesh.cz`, no DNS work) |
+| Deploy dir on Bombur | `/home/deploy/DOCKER/gifter` (owned by the `deploy` user) |
 | Container | `gifter-web`, listens on port 8000, joined to the external `proxy` network (no published host ports) |
-| Image | `ghcr.io/ciakval/gifter` (the repo is private, so the package is private) |
+| Server-owned files | `compose.yaml` (sent by `bombur-onboard`, not by CI) and `.env` (secrets by hand, `IMAGE_TAG` by `bombur-deploy`) |
+| Image | `ghcr.io/ciakval/gifter` |
 | Data | `./data` next to `compose.yaml` (`db.sqlite3` plus `-wal` and `-shm`), bind-mounted at `/app/data` |
-| Pipeline | push to `main` -> test -> build and push to GHCR -> deploy over SSH |
+| Caddy | `/home/ciakval/DOCKER/web/sites/gifter.caddy`, written by `bombur-add-app` |
+| Pipeline | push to `main` -> test -> build and push to GHCR -> reusable `ciakval/bombur-deploy` workflow (`ssh deploy@bombur "deploy <sha>"`) |
 
-CI pulls the image with the job's `GITHUB_TOKEN`. A manual `docker compose pull` on the
-server needs `docker login ghcr.io` with a personal access token that has `read:packages`.
+CI holds exactly one secret for Bombur: `DEPLOY_SSH_KEY` in the GitHub `production`
+environment. It is a per-app key with a forced command, so it can only say "deploy SHA x
+of gifter". CI cannot copy files or open a shell on the server.
 
 ## Local development
 
@@ -39,79 +43,16 @@ URI registered for the dev Google client.
 
 ## One-time setup (in this order)
 
-Order matters: Let's Encrypt needs DNS first, the Google redirect URI needs the domain,
-and the first push needs the GitHub secrets.
+Run `bombur-onboard` only after the deploy files are committed: it sends the working tree's
+`compose.yaml` and `.env.example` to the server.
 
-### 1. DNS
+### 1. Protect `main`
 
-Create a CNAME record `gifter.remesh.cz` -> `bombur.remesh.cz`.
+Protect `main` on `ciakval/gifter` (at least no force-push, no deletion): Settings ->
+Branches, or `gh api`. The `production` environment that `bombur-onboard` creates only
+accepts protected branches.
 
-### 2. Deploy user, directory and `.env`
-
-```sh
-ssh -p 10022 plachtis@bombur.remesh.cz     # plachtis is the default; use another deploy user if you prefer
-id -u                                      # must print 1000 (the container runs as uid 1000)
-mkdir -p ~/DOCKER/gifter/data && cd ~/DOCKER/gifter
-```
-
-If `id -u` is not 1000, the container cannot write the SQLite files; fix it once:
-
-```sh
-sudo chown 1000:1000 ~/DOCKER/gifter/data
-```
-
-Create `.env` from `.env.example` in the repo (copy the file contents, or `scp` it):
-
-```sh
-nano .env                    # fill SECRET_KEY, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET (see step 6)
-openssl rand -base64 48      # value for SECRET_KEY
-chmod 600 .env
-```
-
-Never use Django's own key generator for `SECRET_KEY` (its alphabet contains `$`, which
-Compose may interpolate). Never reuse the old key that is in the git history.
-
-### 3. Deploy key
-
-```sh
-ssh-keygen -t ed25519 -f gifter-deploy -N ''
-# append the public key to the deploy user's authorized_keys on Bombur:
-ssh -p 10022 plachtis@bombur.remesh.cz 'cat >> ~/.ssh/authorized_keys' < gifter-deploy.pub
-```
-
-### 4. GitHub secrets
-
-```sh
-gh secret set VPS_HOST --body bombur.remesh.cz
-gh secret set VPS_SSH_PORT --body 10022
-gh secret set VPS_USER --body plachtis
-gh secret set VPS_SSH_KEY < gifter-deploy
-rm gifter-deploy gifter-deploy.pub          # delete the local copies once the secret is set
-```
-
-### 5. Caddy (as `ciakval`; shared by every site on Bombur, so confirm before editing)
-
-Add this block to `/home/ciakval/DOCKER/web/Caddyfile`:
-
-```caddy
-gifter.remesh.cz {
-	reverse_proxy gifter-web:8000
-}
-```
-
-Then validate and reload without touching the other sites:
-
-```sh
-docker exec caddy caddy validate --config /etc/caddy/Caddyfile
-docker exec caddy caddy reload --config /etc/caddy/Caddyfile
-```
-
-The Caddyfile is a single-file bind mount. If `docker exec caddy cat /etc/caddy/Caddyfile`
-does not show your edit (the editor wrote a new inode), restart the caddy compose project
-in `~/DOCKER/web` instead (a brief blip for all sites). A 502 before the first deploy is
-expected: the upstream container does not exist yet.
-
-### 6. Google Cloud Console
+### 2. Google Cloud Console
 
 1. Create a fresh project named "Gifter" (publishing is per project; do not reuse another app's).
 2. OAuth consent screen (now called Google Auth Platform): user type **External**, app name
@@ -127,12 +68,47 @@ expected: the upstream container does not exist yet.
    (https, trailing slash; JavaScript origins are not needed).
 5. Create a second Web application client for local development with the redirect URI
    `http://127.0.0.1:8000/accounts/google/login/callback/`.
-6. Put the production client id and secret into the server `.env`
-   (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`); the dev pair goes into your local `.env`.
+6. The production client id and secret go into the server `.env` (step 4 below); the dev
+   pair goes into your local `.env`.
 
-### 7. First deploy
+### 3. Onboard the app on Bombur
 
-Push `main` and watch the Actions run (`gh run watch`). Then:
+From the repo root of this checkout:
+
+```sh
+~/GIT/bombur-deploy/bin/bombur-onboard gifter 8000
+```
+
+This creates `/home/deploy/DOCKER/gifter` with `.env` (from `.env.example`; `SECRET_KEY` is
+generated from `CHANGE_ME`) and `data/`, installs the `gh-gifter` forced-command key, adds
+`sites/gifter.caddy` and reloads Caddy, creates the GitHub `production` environment and
+sets `DEPLOY_SSH_KEY`.
+
+The container runs as uid 1000 and must be able to write `./data`. Check the deploy user:
+
+```sh
+ssh -p 10022 ciakval@bombur.remesh.cz 'id -u deploy'
+```
+
+If it does not print `1000`, fix it once:
+
+```sh
+ssh -p 10022 ciakval@bombur.remesh.cz sudo chown 1000:1000 /home/deploy/DOCKER/gifter/data
+```
+
+### 4. Fill the Google credentials
+
+```sh
+ssh -p 10022 ciakval@bombur.remesh.cz sudo -u deploy nano /home/deploy/DOCKER/gifter/.env
+```
+
+Type `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` there (never into chat, the repo or
+GitHub). The app refuses to start while they are empty.
+
+### 5. First deploy
+
+Push `main` and watch the Actions run (`gh run watch`). Caddy answers 502 until the
+container exists. Then:
 
 ```sh
 bash scripts/smoke.sh https://gifter.remesh.cz
@@ -140,24 +116,34 @@ bash scripts/smoke.sh https://gifter.remesh.cz
 
 Sign in with your own Google account, then make yourself staff (see Day-2).
 
+Changing `compose.yaml` later means re-running `bombur-onboard` (it also rotates the key;
+`BOMBUR_KEY_ONLY=1 ~/GIT/bombur-deploy/bin/bombur-onboard gifter 8000` rotates only the key).
+
 ## Deploys and rollback
 
 - Every push to `main` runs test -> build -> deploy. Tests, `makemigrations --check` and
   `check --deploy --fail-level WARNING` must pass before an image is built.
 - Re-run manually: `gh workflow run deploy.yml --ref main`.
-- Rollback: set `IMAGE_TAG` in the server `.env` to an older commit SHA, then
-  `docker compose up -d` in the deploy dir. Images from the last 72 hours are kept.
-- Every deploy log starts with a listing of `./data`, so you can see that the database
-  from earlier deploys is still there.
+- Deploy history on the server (including rejected attempts):
+  `ssh -p 10022 ciakval@bombur.remesh.cz sudo journalctl -t bombur-deploy`
+- Rollback: re-run an older successful Actions run, or set `IMAGE_TAG` in the server `.env`
+  to an older commit SHA and bring the project up as `deploy`:
+
+  ```sh
+  sudo -u deploy sh -c 'cd /home/deploy/DOCKER/gifter && docker compose up -d'
+  ```
+
+  Images from the last 72 hours are kept on the server.
 
 ## Day-2 operations
 
 ```sh
-ssh -p 10022 plachtis@bombur.remesh.cz && cd ~/DOCKER/gifter
-docker compose ps
-docker compose logs -f
-docker compose restart
+ssh -p 10022 ciakval@bombur.remesh.cz
+sudo -u deploy sh -c 'cd /home/deploy/DOCKER/gifter && docker compose ps'
+sudo -u deploy sh -c 'cd /home/deploy/DOCKER/gifter && docker compose logs -f'
+sudo -u deploy sh -c 'cd /home/deploy/DOCKER/gifter && docker compose restart'
 docker exec -ti gifter-web sh                          # shell in the container
+sudo journalctl -t bombur-deploy                       # deploy history
 ```
 
 Make yourself staff after your first Google sign-in (there are no passwords, so there is
@@ -168,6 +154,8 @@ docker exec -ti gifter-web python manage.py promote_staff you@example.com
 ```
 
 The admin lives at `/gifter-admin/` (its own login redirects to Google sign-in).
+
+Revoke CI's deploy access: delete the `gh-gifter` line in `/home/deploy/.ssh/authorized_keys`.
 
 ## Rules and gotchas
 
