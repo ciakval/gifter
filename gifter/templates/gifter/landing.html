@@ -5,10 +5,27 @@
 <div class="text-center py-4">
   <h1 class="display-5 mb-3">Gifter</h1>
   <p class="lead mb-4">{% translate "Gifter lets your family and friends see what you wish for and agree on who buys what, without spoiling the surprise." %}</p>
+  {% if in_app %}
+  <div class="card text-start mx-auto" style="max-width: 32rem;">
+    <div class="card-body">
+      <h2 class="h4 card-title">{% translate "Open Gifter in your browser" %}</h2>
+      <p>{% translate "Google doesn't allow signing in inside this app. Open this page in Chrome or Safari to sign in." %}</p>
+      <ol>
+        <li>{% translate "Tap the ⋯ menu in the corner of the screen." %}</li>
+        <li>{% translate "Choose Open in browser (it may say Open in Safari or Open in Chrome)." %}</li>
+        <li>{% translate "Sign in with Google there." %}</li>
+      </ol>
+      <label for="copy-url" class="form-label visually-hidden">{% translate "Link to Gifter" %}</label>
+      <input type="text" id="copy-url" class="form-control mb-3" value="{{ copy_url }}" readonly>
+      <a href="{{ force_url }}" class="small text-secondary">{% translate "Continue anyway" %}</a>
+    </div>
+  </div>
+  {% else %}
   <form method="post" action="{% provider_login_url 'google' %}" class="d-grid d-sm-block">
     {% csrf_token %}
     <input type="hidden" name="next" value="{{ next }}">
     <button type="submit" class="btn btn-primary btn-lg">{% translate "Sign in with Google" %}</button>
   </form>
+  {% endif %}
 </div>
 {% endblock %}
