@@ -1,5 +1,5 @@
 {% extends "gifter/base.html" %}
-{% load i18n socialaccount %}
+{% load i18n socialaccount static %}
 
 {% block content %}
 <div class="text-center py-4">
@@ -15,6 +15,7 @@
         <li>{% translate "Choose Open in browser (it may say Open in Safari or Open in Chrome)." %}</li>
         <li>{% translate "Sign in with Google there." %}</li>
       </ol>
+      <button type="button" class="btn btn-primary mb-3 d-block w-100" data-copy-url="{{ copy_url }}" data-copied-label="{% translate 'Link copied' %}">{% translate "Copy link" %}</button>
       <label for="copy-url" class="form-label visually-hidden">{% translate "Link to Gifter" %}</label>
       <input type="text" id="copy-url" class="form-control mb-3" value="{{ copy_url }}" readonly>
       <a href="{{ force_url }}" class="small text-secondary">{% translate "Continue anyway" %}</a>
@@ -28,4 +29,8 @@
   </form>
   {% endif %}
 </div>
+{% endblock %}
+
+{% block extra_body %}
+{% if in_app %}<script src="{% static 'gifter/landing.js' %}" defer></script>{% endif %}
 {% endblock %}

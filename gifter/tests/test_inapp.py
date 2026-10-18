@@ -185,3 +185,30 @@ class LandingHintTests(TestCase):
             "/?force=1&next=" + payload, HTTP_USER_AGENT=MESSENGER_IOS
         )
         self.assertNotIn("<script>x</script>", forced.content.decode())
+
+
+class CopyLinkTests(TestCase):
+    def test_copy_button_carries_landing_url(self):
+        response = self.client.get("/", HTTP_USER_AGENT=MESSENGER_IOS)
+        self.assertContains(response, "Copy link")
+        self.assertContains(response, 'data-copy-url="http://testserver/"')
+        self.assertContains(response, 'data-copied-label="Link copied"')
+        self.assertRegex(response.content.decode(), r'<button type="button"[^>]*data-copy-url=')
+
+    def test_copy_button_keeps_next_without_force(self):
+        response = self.client.get("/?next=/events/", HTTP_USER_AGENT=INSTAGRAM_IOS)
+        self.assertContains(response, 'data-copy-url="http://testserver/?next=%2Fevents%2F"')
+        self.assertNotContains(response, 'data-copy-url="http://testserver/?force')
+
+    def test_script_loaded_with_defer(self):
+        response = self.client.get("/", HTTP_USER_AGENT=MESSENGER_IOS)
+        self.assertRegex(
+            response.content.decode(),
+            r'<script src="/static/gifter/landing\.js" defer></script>',
+        )
+
+    def test_normal_browser_has_no_script_or_button(self):
+        response = self.client.get("/", HTTP_USER_AGENT=CHROME_ANDROID)
+        self.assertNotContains(response, "gifter/landing.js")
+        self.assertNotContains(response, "Copy link")
+        self.assertNotContains(response, "data-copy-url")
