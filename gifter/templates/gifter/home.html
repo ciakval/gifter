@@ -1,0 +1,12 @@
+{% extends "gifter/base.html" %}
+{% load i18n %}
+
+{% block content %}
+<div class="py-4">
+  <h1 class="h3 mb-4">{% blocktranslate with name=user.display_name %}Hi {{ name }}, you're signed in.{% endblocktranslate %}</h1>
+  <form method="post" action="{% url 'account_logout' %}">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-outline-secondary">{% translate "Sign out" %}</button>
+  </form>
+</div>
+{% endblock %}

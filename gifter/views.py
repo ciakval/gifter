@@ -1,18 +1,16 @@
-from django.shortcuts import render
-from django.http import HttpResponse
-from django.views import View
-from .models import Wish
-from .forms import WishForm
+from django.contrib.auth.decorators import login_not_required
+from django.shortcuts import redirect, render
 
-# Create your views here.
-class CreateWishView(View):
-    def get(self, request):
-        form = WishForm()
-        return render(request, 'gifter/create_wish.html', {'form': form})
 
-    def post(self, request):
-        form = WishForm(request.POST)
-        if form.is_valid():
-            form.save()
-            return HttpResponse('Wish created successfully')
-        return render(request, 'gifter/create_wish.html', {'form': form})
+@login_not_required
+def landing(request):
+    if request.user.is_authenticated:
+        return redirect("home")
+    # `next` is only echoed into a hidden form field; allauth validates it as a safe
+    # redirect target, so we never build a redirect from it ourselves.
+    return render(request, "gifter/landing.html", {"next": request.GET.get("next", "")})
+
+
+def home(request):
+    # Login required by LoginRequiredMiddleware (no decorator needed).
+    return render(request, "gifter/home.html")

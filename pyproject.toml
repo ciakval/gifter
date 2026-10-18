@@ -1,0 +1,11 @@
+[project]
+name = "gifter"
+version = "0.1.0"
+requires-python = ">=3.13"
+dependencies = [
+    "Django>=6.1,<6.2",
+    "django-allauth[socialaccount]>=65.19,<66",
+    "django-environ>=0.14,<0.15",
+    "gunicorn>=26,<27",
+    "whitenoise>=6.12,<7",
+]

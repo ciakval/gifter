@@ -1,0 +1,29 @@
+{% load i18n static %}<!doctype html>
+<html lang="{{ LANGUAGE_CODE|default:'en' }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block head_title %}Gifter{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'vendor/bootstrap/bootstrap.min.css' %}">
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+  <nav class="navbar navbar-expand bg-body-tertiary mb-4">
+    <div class="container">
+      <a class="navbar-brand fw-semibold" href="{% url 'landing' %}">Gifter</a>
+    </div>
+  </nav>
+  {% block body %}
+  <main class="container">
+    {% if messages %}
+      {% for message in messages %}
+        <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags|default:'info' }}{% endif %}" role="alert">{{ message }}</div>
+      {% endfor %}
+    {% endif %}
+    {% block content %}{% endblock %}
+  </main>
+  {% endblock %}
+  <script src="{% static 'vendor/bootstrap/bootstrap.bundle.min.js' %}" defer></script>
+  {% block extra_body %}{% endblock %}
+</body>
+</html>

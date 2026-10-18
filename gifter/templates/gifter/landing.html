@@ -1,0 +1,14 @@
+{% extends "gifter/base.html" %}
+{% load i18n socialaccount %}
+
+{% block content %}
+<div class="text-center py-4">
+  <h1 class="display-5 mb-3">Gifter</h1>
+  <p class="lead mb-4">{% translate "Gifter lets your family and friends see what you wish for and agree on who buys what, without spoiling the surprise." %}</p>
+  <form method="post" action="{% provider_login_url 'google' %}" class="d-grid d-sm-block">
+    {% csrf_token %}
+    <input type="hidden" name="next" value="{{ next }}">
+    <button type="submit" class="btn btn-primary btn-lg">{% translate "Sign in with Google" %}</button>
+  </form>
+</div>
+{% endblock %}
