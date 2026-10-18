@@ -44,11 +44,11 @@ Decimal phases appear between their surrounding integers in numeric order.
   4. Opening the site inside the Messenger or Instagram in-app browser shows an "open in your browser" hint instead of a Google sign-in error.
   5. Production runs Django 6.1 from a small pinned dependency set, with `DEBUG` off. All secrets, including a fresh `SECRET_KEY`, are read from the server's `.env`, and `manage.py check --deploy` passes in CI.
 
-**Plans:** 5 plans
+**Plans:** 1/5 plans executed
 
 Plans:
 **Wave 1**
-- [ ] 01-01-PLAN.md — Walking skeleton tracer: flattened Django 6.1 app, gifter.User, env-driven settings, Google sign-in round trip with next (local, mocked Google)
+- [x] 01-01-PLAN.md — Walking skeleton tracer: flattened Django 6.1 app, gifter.User, env-driven settings, Google sign-in round trip with next (local, mocked Google)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 - [ ] 01-02-PLAN.md — Google is the only door (signup/password/admin login closed, Google-only admin, promote_staff) and allauth's dead ends restyled to lead back to sign-in
@@ -118,7 +118,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Google Sign-in Live | 0/5 | Planned | - |
+| 1. Google Sign-in Live | 1/5 | In Progress | - |
 | 2. Events, Wishlists & Browsing | 0/TBD | Not started | - |
 | 3. Secret Claims & Gift Lifecycle | 0/TBD | Not started | - |
 | 4. Family Launch | 0/TBD | Not started | - |
