@@ -1,0 +1,10 @@
+{% extends "gifter/base.html" %}
+{% load i18n %}
+{% block head_title %}{% translate "Sign-in cancelled" %} - Gifter{% endblock %}
+{% block content %}
+  <div class="text-center py-5">
+    <h1 class="h3 mb-3">{% translate "Sign-in cancelled" %}</h1>
+    <p class="mb-4">{% translate "You cancelled signing in with Google. You can try again whenever you like." %}</p>
+    <a class="btn btn-primary btn-lg" href="{% url 'landing' %}">{% translate "Try again" %}</a>
+  </div>
+{% endblock %}
