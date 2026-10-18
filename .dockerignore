@@ -1,0 +1,14 @@
+.git
+.github
+.env
+data/
+.venv/
+__pycache__/
+*.sqlite3
+*.sqlite3-wal
+*.sqlite3-shm
+staticfiles/
+.planning
+.claude
+.gsd
+scripts/
