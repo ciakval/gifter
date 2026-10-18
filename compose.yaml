@@ -1,0 +1,29 @@
+services:
+  web:
+    image: ghcr.io/${GITHUB_REPOSITORY:-ciakval/gifter}:${IMAGE_TAG:-latest}
+    # Caddy reaches the app by this name over the "proxy" network; must be unique on Bombur.
+    container_name: ${CONTAINER_NAME:-gifter-web}
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      # Observability (no-op until a collector exists; see references/observability.md)
+      OTEL_SERVICE_NAME: ${OTEL_SERVICE_NAME:-gifter}
+      OTEL_RESOURCE_ATTRIBUTES: deployment.environment=${DEPLOY_ENV:-production}
+    volumes:
+      - ./data:/app/data
+    # No "ports:" — Caddy proxies to gifter-web:8000 over the proxy network.
+    networks:
+      - default
+      - proxy
+
+  # Internal services go here, on the default network only (no container_name, no proxy), e.g.:
+  # db:
+  #   image: postgres:17
+  #   restart: unless-stopped
+  #   env_file: .env
+  #   volumes:
+  #     - ./data/postgres:/var/lib/postgresql/data
+
+networks:
+  proxy:
+    external: true
