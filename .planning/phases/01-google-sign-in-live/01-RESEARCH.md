@@ -227,7 +227,7 @@ Phase 1 swaps the user model and flattens the repo, but nothing has ever been de
 
 ### Pitfall 4: Bind-mounted `./data` not writable by uid 1000
 **What goes wrong:** container runs as uid 1000; the host dir is created by the deploy user's `mkdir -p data` in the workflow. If the deploy user's uid is not 1000, SQLite cannot create `db.sqlite3` / `-wal` / `-shm` (the *directory* must be writable, not just the file) [bombur-infra SKILL.md "Known pitfalls"].
-**How to avoid:** on Bombur run `id -u <deploy-user>` and, if not 1000, either `chown`/set `user:` in compose. Locally the prototype ran fine as uid 1000 with a bind mount. Listed as an open question because I did not SSH to the server.
+**How to avoid:** on Bombur run `id -u <deploy-user>` and, if not 1000, either `chown`/set `user:` in compose. Locally the prototype ran fine as uid 1000 with a bind mount. This was an open question because I did not SSH to the server. Now resolved: the user checks `id -u` at plan 01-05 Task 1, and DEPLOYMENT.md (plan 01-04) carries the `chown` fallback (see Open Questions (RESOLVED), Q1).
 
 ### Pitfall 5: `redirect_uri_mismatch` / `http` redirect URI in production
 **What goes wrong:** without `SECURE_PROXY_SSL_HEADER`, the callback URL is built with `http://`. With it, verified: `redirect_uri=https%3A%2F%2Fgifter.remesh.cz%2Faccounts%2Fgoogle%2Flogin%2Fcallback%2F`. Caddy sets `X-Forwarded-Proto` itself and ignores client-supplied values unless `trusted_proxies` is configured [CITED: caddyserver.com/docs/caddyfile/directives/reverse_proxy], so trusting the header is safe as long as the container is reachable only through Caddy (no `ports:`).
@@ -518,7 +518,7 @@ networks:
 No `ports:`. `.env.example` keys: managed-by-CI block (`GITHUB_REPOSITORY`, `IMAGE_TAG`, `CONTAINER_NAME`, `DEPLOY_ENV`), app block (`SECRET_KEY`, `DEBUG=False`, `PUBLIC_HOSTS=gifter.remesh.cz`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `SECURE_HSTS_SECONDS=3600`), commented OTEL block. `DATA_DIR` need not be set (default `/app/data` is `BASE_DIR/data` with `WORKDIR /app`).
 
 ### .github/workflows/deploy.yml
-Start from `~/.claude/skills/bombur-infra/assets/deploy.yml` (`APP: gifter`, `DEPLOY_DIR: /home/<deploy-user>/DOCKER/gifter`, deploy user TBD, see Open Questions) and add:
+Start from `~/.claude/skills/bombur-infra/assets/deploy.yml` (`APP: gifter`, `DEPLOY_DIR: /home/<deploy-user>/DOCKER/gifter`; deploy user defaults to `plachtis` and is confirmed at plan 01-05's checkpoint, see Open Questions (RESOLVED), Q1) and add:
 ```yaml
   test:
     runs-on: ubuntu-latest
@@ -574,7 +574,7 @@ Anonymous `/events/` → 302 `/?next=/events/`; anonymous `/` → 200 with form 
 
 Order matters: Let's Encrypt needs DNS first; Google redirect URI needs the domain; the first push needs secrets.
 1. DNS: CNAME `gifter.remesh.cz` → `bombur.remesh.cz`.
-2. Server: choose deploy user (see Open Questions); `mkdir -p ~/DOCKER/gifter/data && cd ~/DOCKER/gifter`; create `.env` from `.env.example` (`openssl rand -base64 48` for `SECRET_KEY`), `chmod 600 .env`. `id -u` of the user must be 1000 or `data/` must be chowned.
+2. Server: confirm the deploy user (default `plachtis`, confirmed at plan 01-05's checkpoint; see Open Questions (RESOLVED), Q1); `mkdir -p ~/DOCKER/gifter/data && cd ~/DOCKER/gifter`; create `.env` from `.env.example` (`openssl rand -base64 48` for `SECRET_KEY`), `chmod 600 .env`. `id -u` of the user must be 1000 or `data/` must be chowned.
 3. Deploy key: `ssh-keygen -t ed25519 -f gifter-deploy -N ''`; append `.pub` to the deploy user's `authorized_keys`.
 4. GitHub secrets: `VPS_HOST=bombur.remesh.cz`, `VPS_SSH_PORT=10022`, `VPS_USER`, `VPS_SSH_KEY` (via `gh secret set`).
 5. Caddy (as `ciakval`, confirm before editing — shared): add `gifter.remesh.cz { reverse_proxy gifter-web:8000 }` to `/home/ciakval/DOCKER/web/Caddyfile`, `docker exec caddy caddy validate …` then `caddy reload`; if the edit is not visible in the container, restart the caddy compose project (single-file bind mount inode issue).
@@ -623,16 +623,21 @@ Order matters: Let's Encrypt needs DNS first; Google redirect URI needs the doma
 | A7 | Bombur's Caddy has default `reverse_proxy` header behaviour (no global `trusted_proxies`) | Pitfall 5 | Wrong scheme/IP; check Caddyfile global block |
 | A8 | The five PyPI packages are legitimate (seam says SUS for artefact reasons; evidence gathered manually) | Package Legitimacy | Supply-chain risk; mitigated by one human-verify checkpoint |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Which Bombur deploy user hosts gifter (reuse `plachtis`, which already hosts plachtis, plachtis-test, gustik, or create `gifter`)?**
    - Known: reuse works (separate directories); new user is "tidier, not isolated" per bombur-infra.
    - Unclear: user preference and its uid.
    - Recommendation: reuse `plachtis` unless uid != 1000; planner must make `DEPLOY_DIR`/`VPS_USER` a clearly marked placeholder resolved by the human checkpoint.
+   - **RESOLVED:** defaults to `plachtis` (`DEPLOY_DIR: /home/plachtis/DOCKER/gifter` in plan 01-04's deploy.yml and DEPLOYMENT.md). The user confirms it or names another user at plan 01-05 Task 1 (checkpoint:human-action), and 01-05 Task 2 rewrites `DEPLOY_DIR` if it differs. A uid other than 1000 is handled by the documented one-time `chown`.
 2. **Is the GitHub repo public or private?** Affects only whether GHCR pulls by hand need `docker login`; the workflow's `GITHUB_TOKEN` login covers CI deploys either way.
+   - **RESOLVED:** private (`gh repo view ciakval/gifter` reported PRIVATE on 2026-10-16). CI deploys log in to GHCR with `GITHUB_TOKEN`; manual pulls on Bombur need `docker login ghcr.io` with a `read:packages` PAT, as documented in DEPLOYMENT.md (plan 01-04).
 3. **Is the Google Cloud project/consent screen already in use for another app (name, branding)?** Publishing is per project; a fresh project for Gifter avoids side effects.
+   - **RESOLVED:** use a fresh Google Cloud project named "Gifter" (plan 01-05 Task 1 step 6, also in DEPLOYMENT.md from plan 01-04).
 4. **Path for the placeholder home (`/events/` suggested) and admin slug** — planner's call; keep the URL name `home`.
+   - **RESOLVED:** home is at `/events/` with URL name `home` (plan 01-01); the admin is at `/gifter-admin/`, and its login redirects to Google sign-in (plan 01-02).
 5. **Does a UI contract exist?** ROADMAP marks `UI hint: yes`; run `/gsd-ui-phase` first if a UI-SPEC is wanted, otherwise the planner uses the Bootstrap defaults and the landing/home/hint specs above.
+   - **RESOLVED:** no UI-SPEC, and the UI gate did not block planning. The plans use vendored Bootstrap 5.3.8 defaults with the landing/home copy in plan 01-01, the allauth page copy in 01-02 and the in-app hint copy in 01-03.
 
 ## Project Constraints (from CLAUDE.md)
 
