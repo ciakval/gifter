@@ -9,8 +9,8 @@ Requirements for the Christmas 2026 release. Each maps to roadmap phases.
 
 ### Foundation & Ops
 
-- [ ] **OPS-01**: App runs on Django 6.1 with a minimal pinned dependency set (data-science requirements dump removed)
-- [ ] **OPS-02**: Production settings come from environment variables (committed `SECRET_KEY` rotated out, `DEBUG` off, `ALLOWED_HOSTS` / `CSRF_TRUSTED_ORIGINS` for `gifter.remesh.cz`)
+- [x] **OPS-01**: App runs on Django 6.1 with a minimal pinned dependency set (data-science requirements dump removed)
+- [x] **OPS-02**: Production settings come from environment variables (committed `SECRET_KEY` rotated out, `DEBUG` off, `ALLOWED_HOSTS` / `CSRF_TRUSTED_ORIGINS` for `gifter.remesh.cz`)
 - [ ] **OPS-03**: App is reachable at `https://gifter.remesh.cz`, deployed to Bombur via GitHub Actions → GHCR → Docker Compose (per bombur-infra conventions), with SQLite persisted in the bind-mounted `./data`
 - [ ] **OPS-04**: Users opening Gifter inside Messenger/Instagram (or similar) in-app browsers see an "open in your browser" hint instead of a Google sign-in error
 - [ ] **OPS-05**: 2–3 relatives complete a dry-run (sign in, join, add wish, claim) by ~22 Nov 2026
@@ -114,8 +114,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| OPS-01 | Phase 1 | Pending |
-| OPS-02 | Phase 1 | Pending |
+| OPS-01 | Phase 1 | Complete |
+| OPS-02 | Phase 1 | Complete |
 | OPS-03 | Phase 1 | Pending |
 | OPS-04 | Phase 1 | Pending |
 | OPS-05 | Phase 4 | Pending |

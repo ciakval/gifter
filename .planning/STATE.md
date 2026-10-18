@@ -3,16 +3,16 @@ gsd_state_version: "1.0"
 current_phase: 01
 current_phase_name: Google Sign-in Live
 status: executing
-stopped_at: Completed 01-03-PLAN.md
-last_updated: "2026-10-18T11:15:01.544Z"
+stopped_at: Completed 01-04-PLAN.md
+last_updated: "2026-10-18T11:19:11.537Z"
 last_activity: 2026-10-18
 last_activity_desc: Phase 01 execution started
-state_head: 6341fa0a1e8ac4d007ec8764ec0401a20484f98a
+state_head: d68084617f8120951cfe620394b6169fc06581c0
 progress:
   total_phases: 4
   completed_phases: 0
   total_plans: 5
-  completed_plans: 3
+  completed_plans: 4
   percent: 0
 ---
 
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-10-16)
 ## Current Position
 
 Phase: 01 (Google Sign-in Live) — EXECUTING
-Plan: 4 of 5
+Plan: 5 of 5
 Status: Ready to execute
 Last activity: 2026-10-18 — Phase 01 execution started
 
@@ -59,6 +59,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 01 P01 | 2 min | 3 tasks | 36 files |
 | Phase 01 P02 | 4 min | 2 tasks | 10 files |
 | Phase 01 P03 | 4 min | 2 tasks | 5 files |
+| Phase 01 P04 | 15 min | 2 tasks | 10 files |
 
 ## Accumulated Context
 
@@ -76,6 +77,8 @@ Recent decisions affecting current work:
 - [Phase 01]: [Phase 1 / 01-01] Static storage depends on DEBUG (plain in dev/tests, WhiteNoise manifest in prod); production security block and fail-closed secrets apply only when DEBUG is off; tests run with DEBUG=1
 - [Phase 01]: 01-02: No SocialApp admin registration; Google credentials stay settings-only. allauth layout override is a single extends of gifter/base.html.
 - [Phase 01]: In-app hint replaces the Google form entirely with an always-present Continue anyway (force=1) link; no intent:// deep link
+- [Phase 01]: 01-04: Vendor Bootstrap .map files so the manifest static storage can post-process the minified assets in collectstatic
+- [Phase 01]: 01-04: Third-party appleboy actions pinned to full commit SHAs (scp-action v1.0.0, ssh-action v1.2.5); DEPLOY_DIR defaults to /home/plachtis/DOCKER/gifter pending 01-05 confirmation
 
 ### Pending Todos
 
@@ -98,6 +101,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-18T11:15:01.513Z
-Stopped at: Completed 01-03-PLAN.md
+Last session: 2026-10-18T11:19:11.499Z
+Stopped at: Completed 01-04-PLAN.md
 Resume file: None
