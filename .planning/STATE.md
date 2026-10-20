@@ -2,17 +2,17 @@
 gsd_state_version: "1.0"
 current_phase: 01
 current_phase_name: Google Sign-in Live
-status: executing
-stopped_at: Completed 01-04-PLAN.md
-last_updated: "2026-10-18T11:19:11.537Z"
+status: verifying
+stopped_at: Completed 01-05-PLAN.md
+last_updated: "2026-10-20T16:03:31.326Z"
 last_activity: 2026-10-18
 last_activity_desc: Phase 01 execution started
-state_head: d68084617f8120951cfe620394b6169fc06581c0
+state_head: b9b6a2d9736cce9c17cb080132676954b0259be3
 progress:
   total_phases: 4
   completed_phases: 0
   total_plans: 5
-  completed_plans: 4
+  completed_plans: 5
   percent: 0
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-10-16)
 
 Phase: 01 (Google Sign-in Live) — EXECUTING
 Plan: 5 of 5
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-10-18 — Phase 01 execution started
 
 Progress: [░░░░░░░░░░] 0%
@@ -60,6 +60,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 01 P02 | 4 min | 2 tasks | 10 files |
 | Phase 01 P03 | 4 min | 2 tasks | 5 files |
 | Phase 01 P04 | 15 min | 2 tasks | 10 files |
+| Phase 01 P05 | multi-session | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -79,15 +80,20 @@ Recent decisions affecting current work:
 - [Phase 01]: In-app hint replaces the Google form entirely with an always-present Continue anyway (force=1) link; no intent:// deep link
 - [Phase 01]: 01-04: Vendor Bootstrap .map files so the manifest static storage can post-process the minified assets in collectstatic
 - [Phase 01]: 01-04: Third-party appleboy actions pinned to full commit SHAs (scp-action v1.0.0, ssh-action v1.2.5); DEPLOY_DIR defaults to /home/plachtis/DOCKER/gifter pending 01-05 confirmation
+- [Phase 01]: 01-05: Google consent screen left in Testing until a /privacy/ page exists; publish before relatives get invites
+- [Phase 01]: 01-05: ciakval/gifter made public (GitHub Free has no branch protection on private repos; production env needs protected main); history scanned clean
 
 ### Pending Todos
 
-None yet.
+- [blocking for Christmas rollout] Add a /privacy/ page linked from the footer, fill Google Branding and Publish the consent screen before relatives get invites (consent screen is still in Testing; only test users can sign in)
+- Raise HSTS max-age above 3600 once the site is stable
+- Add a health endpoint and set health_path in the reusable deploy call
+- Capture real Messenger/Instagram in-app menu wording and adjust the hint copy
 
 ### Blockers/Concerns
 
 - Deadlines: features complete ~15 Nov, family dry-run 15–22 Nov, freeze 1 Dec 2026
-- Phase 1: The Google OAuth consent screen must be published ("In production") so relatives' accounts work. This needs the user's Google Cloud Console access.
+- Phase 1 (still open after 01-05): The Google OAuth consent screen must be published ("In production") so relatives' accounts work. This needs the user's Google Cloud Console access.
 - Phase 1: The Bombur steps outside the repo (DNS CNAME, server `.env`, deploy key, GitHub secrets, Caddy block) need the user
 - Phase 3: Run discuss-phase before planning (un-sharing a claimed wish, release hand-over)
 
@@ -101,6 +107,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-18T11:19:11.499Z
-Stopped at: Completed 01-04-PLAN.md
+Last session: 2026-10-20T16:03:31.289Z
+Stopped at: Completed 01-05-PLAN.md
 Resume file: None

@@ -44,7 +44,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   4. Opening the site inside the Messenger or Instagram in-app browser shows an "open in your browser" hint instead of a Google sign-in error.
   5. Production runs Django 6.1 from a small pinned dependency set, with `DEBUG` off. All secrets, including a fresh `SECRET_KEY`, are read from the server's `.env`, and `manage.py check --deploy` passes in CI.
 
-**Plans:** 4/5 plans executed
+**Plans:** 5/5 plans executed
 
 Plans:
 **Wave 1**
@@ -56,7 +56,7 @@ Plans:
 - [x] 01-04-PLAN.md — Production image with container smoke test, compose/.env spec, test-gated GitHub Actions → GHCR → Bombur pipeline, DEPLOYMENT.md
 
 **Wave 3** *(blocked on Wave 2 completion)*
-- [ ] 01-05-PLAN.md — Go live: user's one-time setup, first deploy, live smoke + persistence proof, real-device/real-account checks
+- [x] 01-05-PLAN.md — Go live: user's one-time setup, first deploy, live smoke + persistence proof, real-device/real-account checks
 
 **UI hint**: yes
 **Notes:** Before the first production deploy, switch to a custom user model and regenerate the initial migrations. Treat the committed `SECRET_KEY` as compromised. Publish the Google OAuth consent screen ("In production", basic scopes), register the exact https redirect URI, and set the proxy SSL header behind Caddy. Enable SQLite WAL mode. Follow the bombur-infra conventions (Dockerfile, `compose.yaml`, `deploy.yml`, `.env.example`, `DEPLOYMENT.md`); the steps outside the repo (DNS, server `.env`, deploy key, GitHub secrets, Caddy block) need the user. Research: check the allauth settings for the installed version, including whether `django.contrib.sites` is required.
@@ -118,7 +118,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Google Sign-in Live | 4/5 | In Progress | - |
+| 1. Google Sign-in Live | 5/5 | In Progress | - |
 | 2. Events, Wishlists & Browsing | 0/TBD | Not started | - |
 | 3. Secret Claims & Gift Lifecycle | 0/TBD | Not started | - |
 | 4. Family Launch | 0/TBD | Not started | - |

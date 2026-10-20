@@ -11,16 +11,16 @@ Requirements for the Christmas 2026 release. Each maps to roadmap phases.
 
 - [x] **OPS-01**: App runs on Django 6.1 with a minimal pinned dependency set (data-science requirements dump removed)
 - [x] **OPS-02**: Production settings come from environment variables (committed `SECRET_KEY` rotated out, `DEBUG` off, `ALLOWED_HOSTS` / `CSRF_TRUSTED_ORIGINS` for `gifter.remesh.cz`)
-- [ ] **OPS-03**: App is reachable at `https://gifter.remesh.cz`, deployed to Bombur via GitHub Actions → GHCR → Docker Compose (per bombur-infra conventions), with SQLite persisted in the bind-mounted `./data`
-- [ ] **OPS-04**: Users opening Gifter inside Messenger/Instagram (or similar) in-app browsers see an "open in your browser" hint instead of a Google sign-in error
+- [x] **OPS-03**: App is reachable at `https://gifter.remesh.cz`, deployed to Bombur via GitHub Actions → GHCR → Docker Compose (per bombur-infra conventions), with SQLite persisted in the bind-mounted `./data`
+- [x] **OPS-04**: Users opening Gifter inside Messenger/Instagram (or similar) in-app browsers see an "open in your browser" hint instead of a Google sign-in error
 - [ ] **OPS-05**: 2–3 relatives complete a dry-run (sign in, join, add wish, claim) by ~22 Nov 2026
 - [ ] **OPS-06**: The SQLite database is backed up nightly to a location off the app directory, and a restore has been tested once before 1 Dec 2026
 
 ### Authentication
 
-- [ ] **AUTH-01**: User can sign in with their Google account (the only login method; the old password `/login/` route is removed)
-- [ ] **AUTH-02**: User stays signed in across browser sessions and can sign out
-- [ ] **AUTH-03**: Every page except the landing and invite-confirm pages requires sign-in
+- [x] **AUTH-01**: User can sign in with their Google account (the only login method; the old password `/login/` route is removed)
+- [x] **AUTH-02**: User stays signed in across browser sessions and can sign out
+- [x] **AUTH-03**: Every page except the landing and invite-confirm pages requires sign-in
 
 ### Events
 
@@ -116,13 +116,13 @@ Which phases cover which requirements. Updated during roadmap creation.
 |-------------|-------|--------|
 | OPS-01 | Phase 1 | Complete |
 | OPS-02 | Phase 1 | Complete |
-| OPS-03 | Phase 1 | Pending |
-| OPS-04 | Phase 1 | Pending |
+| OPS-03 | Phase 1 | Complete |
+| OPS-04 | Phase 1 | Complete |
 | OPS-05 | Phase 4 | Pending |
 | OPS-06 | Phase 4 | Pending |
-| AUTH-01 | Phase 1 | Pending |
-| AUTH-02 | Phase 1 | Pending |
-| AUTH-03 | Phase 1 | Pending |
+| AUTH-01 | Phase 1 | Complete |
+| AUTH-02 | Phase 1 | Complete |
+| AUTH-03 | Phase 1 | Complete |
 | EVNT-01 | Phase 2 | Pending |
 | EVNT-02 | Phase 2 | Pending |
 | EVNT-03 | Phase 2 | Pending |
