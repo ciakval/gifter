@@ -44,7 +44,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   4. Opening the site inside the Messenger or Instagram in-app browser shows an "open in your browser" hint instead of a Google sign-in error.
   5. Production runs Django 6.1 from a small pinned dependency set, with `DEBUG` off. All secrets, including a fresh `SECRET_KEY`, are read from the server's `.env`, and `manage.py check --deploy` passes in CI.
 
-**Plans:** 5/5 plans executed
+**Plans:** 8 plans (5 executed; 3 gap-closure plans pending)
 
 Plans:
 **Wave 1**
@@ -57,6 +57,11 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 - [x] 01-05-PLAN.md — Go live: user's one-time setup, first deploy, live smoke + persistence proof, real-device/real-account checks
+
+**Gap closure** *(from 01-VERIFICATION.md and 01-REVIEW.md; run with `/gsd-execute-phase 1 --gaps-only`)*
+- [ ] 01-06-PLAN.md — Public /privacy/ page linked from every page's footer (Google Branding prerequisite), GIFTER_CONTACT_EMAIL setting, deploy.yml hardening (WR-01 latest only on main, WR-02 SHA pins and permissions)
+- [ ] 01-07-PLAN.md — Google-only door enforced: explicit allauth URL allowlist with adapters (WR-03), read-only Google identity admin (WR-04), promote_staff via Google-verified email with uid (WR-05), review dispositions recorded *(after 01-06)*
+- [ ] 01-08-PLAN.md — Deploy and prove live, user publishes the consent screen (Branding + In production), never-added Google account signs in, human checks reported one by one *(after 01-07; has checkpoints)*
 
 **UI hint**: yes
 **Notes:** Before the first production deploy, switch to a custom user model and regenerate the initial migrations. Treat the committed `SECRET_KEY` as compromised. Publish the Google OAuth consent screen ("In production", basic scopes), register the exact https redirect URI, and set the proxy SSL header behind Caddy. Enable SQLite WAL mode. Follow the bombur-infra conventions (Dockerfile, `compose.yaml`, `deploy.yml`, `.env.example`, `DEPLOYMENT.md`); the steps outside the repo (DNS, server `.env`, deploy key, GitHub secrets, Caddy block) need the user. Research: check the allauth settings for the installed version, including whether `django.contrib.sites` is required.
