@@ -313,7 +313,7 @@ class InviteTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "already in this event")
         self.assertContains(response, f'href="/events/{self.event.pk}/"')
-        self.assertNotRegex(response.content.decode(), r'<form[^>]*method="post"[^>]*>\s*<input[^>]*csrf')
+        self.assertNotContains(response, "btn-lg")  # no Join button
 
     def test_signed_in_unknown_token_404(self):
         self.client.force_login(self.visitor)
@@ -388,6 +388,10 @@ class LandingNextTests(TestCase):
             response = self.client.get("/", {"next": target})
             self.assertEqual(response.status_code, 302)
             self.assertEqual(response["Location"], "/events/")
+
+    def test_admin_next_goes_home_to_avoid_a_redirect_loop(self):
+        response = self.client.get("/", {"next": "/gifter-admin/"})
+        self.assertEqual(response["Location"], "/events/")
 
     def test_plain_landing_goes_home(self):
         response = self.client.get("/")

@@ -1,0 +1,33 @@
+{% extends "gifter/base.html" %}
+{% load i18n %}
+{% block head_title %}{{ event.name }} - Gifter{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-6">
+    {% if already_member %}
+      <div class="card">
+        <div class="card-body text-center">
+          <h1 class="h3 card-title">{% translate "You are already in this event." %}</h1>
+          <p class="card-text">{{ event.name }}</p>
+          <a href="{% url 'event_detail' event.pk %}" class="btn btn-primary">{% translate "Go to the event" %}</a>
+        </div>
+      </div>
+    {% else %}
+      <div class="card">
+        <div class="card-body text-center">
+          <p class="text-body-secondary mb-1">{% translate "You are invited to" %}</p>
+          <h1 class="h3 card-title">{{ event.name }}</h1>
+          {% if event.date %}<p class="mb-1">{{ event.date|date:"DATE_FORMAT" }}</p>{% endif %}
+          {% if creator_name %}<p class="mb-1">{% blocktranslate with name=creator_name %}Created by {{ name }}{% endblocktranslate %}</p>{% endif %}
+          <p class="text-body-secondary">{% blocktranslate count counter=member_count %}{{ counter }} member{% plural %}{{ counter }} members{% endblocktranslate %}</p>
+          <form method="post">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-primary btn-lg">{% translate "Join" %}</button>
+          </form>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

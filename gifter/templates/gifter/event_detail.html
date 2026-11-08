@@ -1,5 +1,5 @@
 {% extends "gifter/base.html" %}
-{% load i18n %}
+{% load i18n static %}
 {% block head_title %}{{ event.name }} - Gifter{% endblock %}
 
 {% block content %}
@@ -19,5 +19,17 @@
   {% endif %}
 </details>
 
+<div class="card mb-4">
+  <div class="card-body">
+    <h2 class="h5 card-title">{% translate "Invite link" %}</h2>
+    <p class="small text-body-secondary">{% translate "Anyone with this link can join this event after signing in. Send it only to people you want here." %}</p>
+    <label for="copy-url" class="form-label visually-hidden">{% translate "Invite link" %}</label>
+    <input type="text" id="copy-url" class="form-control mb-2" value="{{ invite_url }}" readonly>
+    <button type="button" class="btn btn-outline-primary" data-copy-url="{{ invite_url }}" data-copied-label="{% translate 'Link copied' %}">{% translate "Copy link" %}</button>
+  </div>
+</div>
+
 {# Plan 02-02: wish sections go here, below the members list. #}
 {% endblock %}
+
+{% block extra_body %}<script src="{% static 'gifter/landing.js' %}" defer></script>{% endblock %}

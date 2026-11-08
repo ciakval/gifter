@@ -133,4 +133,22 @@ code="$(get "$TMP/k.head" "$TMP/k.body" /accounts/3rdparty/)"
 [ "$code" = "404" ] || fail "(k) GET /accounts/3rdparty/ returned $code, expected 404"
 pass "(k) GET /accounts/3rdparty/ is 404"
 
+# (l) an event page is never reachable signed out (stays a redirect to the landing page); prints PASS (l)
+code="$(get "$TMP/l.head" "$TMP/l.body" /events/1/)"
+loc="$(header "$TMP/l.head" location)"
+[ "$code" = "302" ] || fail "(l) GET /events/1/ returned $code, expected 302"
+case "$loc" in
+  "/?next=/events/1/" | "$ORIGIN/?next=/events/1/" | "$BASE/?next=/events/1/") pass "(l) GET /events/1/ signed out redirects to $loc" ;;
+  *) fail "(l) GET /events/1/ Location was '$loc', expected /?next=/events/1/" ;;
+esac
+
+# (m) an invite link signed out only redirects to sign-in, whether or not the token exists; prints PASS (m)
+code="$(get "$TMP/m.head" "$TMP/m.body" /invite/smoke-not-a-token/)"
+loc="$(header "$TMP/m.head" location)"
+[ "$code" = "302" ] || fail "(m) GET /invite/smoke-not-a-token/ returned $code, expected 302"
+case "$loc" in
+  "/?next=/invite/smoke-not-a-token/" | "$ORIGIN/?next=/invite/smoke-not-a-token/" | "$BASE/?next=/invite/smoke-not-a-token/") pass "(m) GET /invite/<token>/ signed out redirects to $loc" ;;
+  *) fail "(m) GET /invite/smoke-not-a-token/ Location was '$loc', expected /?next=/invite/smoke-not-a-token/" ;;
+esac
+
 echo "SMOKE OK"
