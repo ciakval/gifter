@@ -187,3 +187,29 @@ def invite(request, token):
             "creator_name": event.created_by.display_name if event.created_by else None,
         },
     )
+
+
+def wish_edit(request, pk):
+    wish = get_object_or_404(Wish, pk=pk, owner=request.user, status=Wish.Status.ACTIVE)
+    form = WishForm(request.POST or None, instance=wish, owner=request.user)
+    if request.method == "POST" and form.is_valid():
+        with transaction.atomic():
+            wish = form.save(commit=False)
+            # Never write status here: a delete racing this edit must not be undone.
+            wish.save(update_fields=["name", "description", "priority", "links", "updated_at"])
+            form.save_m2m()
+        messages.success(request, _("Wish saved."))
+        return redirect("wishlist")
+    return render(request, "gifter/wish_form.html", {"form": form, "is_edit": True})
+
+
+def wish_delete(request, pk):
+    if request.method == "POST":
+        # Any status, so a repeated delete is a harmless no-op with the same outcome.
+        wish = get_object_or_404(Wish, pk=pk, owner=request.user)
+        wish.status = Wish.Status.WITHDRAWN
+        wish.save(update_fields=["status", "updated_at"])
+        messages.success(request, _("Wish deleted."))
+        return redirect("wishlist")
+    wish = get_object_or_404(Wish, pk=pk, owner=request.user, status=Wish.Status.ACTIVE)
+    return render(request, "gifter/wish_confirm_delete.html", {"wish": wish})

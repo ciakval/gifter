@@ -8,7 +8,7 @@
   <a href="{% url 'wish_create' %}" class="btn btn-primary">{% translate "Add wish" %}</a>
 </div>
 {% for wish in wishes %}
-  {% include "gifter/includes/owner_wish.html" with show_events=True show_actions=show_actions %}
+  {% include "gifter/includes/owner_wish.html" with show_events=True show_actions=True %}
 {% empty %}
   <p class="text-body-secondary">{% translate "Your wishlist is empty. Add the first thing you would like to get." %}</p>
 {% endfor %}

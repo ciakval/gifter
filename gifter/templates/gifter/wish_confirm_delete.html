@@ -1,0 +1,18 @@
+{% extends "gifter/base.html" %}
+{% load i18n %}
+{% block head_title %}{% translate "Delete this wish?" %} - Gifter{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-6">
+    <h1 class="h3 mb-3">{% translate "Delete this wish?" %}</h1>
+    <p class="fw-semibold">{{ wish.name }}</p>
+    <p>{% translate "It disappears from your wishlist and from every event." %}</p>
+    <form method="post">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-danger">{% translate "Delete" %}</button>
+      <a href="{% url 'wishlist' %}" class="btn btn-link">{% translate "Cancel" %}</a>
+    </form>
+  </div>
+</div>
+{% endblock %}

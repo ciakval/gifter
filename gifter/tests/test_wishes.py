@@ -255,7 +255,7 @@ class WishCrudTests(TestCase):
         wish = make_wish(self.anna, events=[self.event])
         html = self.client.get(f"/wishes/{wish.pk}/edit/").content.decode()
         self.assertEqual(html.count(" checked"), 1)
-        self.assertIn(f'value="{self.event.pk}" id="id_events_', html.replace('"  ', '" '))
+        self.assertRegex(html, rf'name="events" value="{self.event.pk}"[^>]* checked')
 
     def test_owner_edit_changes_fields_and_shares(self):
         wish = make_wish(self.anna, events=[self.event])

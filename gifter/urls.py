@@ -9,6 +9,8 @@ urlpatterns = [
     path("events/<int:pk>/", views.event_detail, name="event_detail"),
     path("wishes/", views.wishlist, name="wishlist"),
     path("wishes/new/", views.wish_create, name="wish_create"),
+    path("wishes/<int:pk>/edit/", views.wish_edit, name="wish_edit"),
+    path("wishes/<int:pk>/delete/", views.wish_delete, name="wish_delete"),
     path("invite/<slug:token>/", views.invite, name="invite"),
     path("privacy/", views.privacy, name="privacy"),
 ]
