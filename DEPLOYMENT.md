@@ -167,6 +167,11 @@ no `createsuperuser`):
 docker exec -ti gifter-web python manage.py promote_staff you@example.com
 ```
 
+`promote_staff` promotes only the one Google account whose email Google has verified (and
+that has a verified email address row for it). It prints that account's Google uid, and
+refuses, promoting nobody, for an unknown, unverified, non-Google or ambiguous match. Check the
+printed uid against `/gifter-admin/socialaccount/socialaccount/`.
+
 The admin lives at `/gifter-admin/` (its own login redirects to Google sign-in).
 
 Revoke CI's deploy access: delete the `gh-gifter` line in `/home/deploy/.ssh/authorized_keys`.
@@ -176,8 +181,12 @@ Revoke CI's deploy access: delete the `gh-gifter` line in `/home/deploy/.ssh/aut
 - Never tear the compose project down before `up`, and never prune anything but images:
   Bombur is a shared host (other apps live there).
 - Caddy only proxies; WhiteNoise serves the static files from the app.
-- **Never add a "Social application" row in the Django admin.** The Google credentials come
-  from settings (environment); having a database row as well breaks sign-in.
+- **The admin offers no "Social applications" or "Social tokens".** The Google credentials
+  come from settings (environment); a database row as well would break sign-in. Social
+  accounts and Email addresses are view and delete only. Wishes and claims are never in the
+  admin: the author is staff and also a giftee.
+- Only seven `accounts/` routes exist (Google sign-in, sign-out, cancelled, error and the
+  sign-up fallback). A test pins the list; everything else under `accounts/` is 404.
 - Rotating `SECRET_KEY` signs everyone out.
 - `/privacy/` must stay public and truthful. It describes only what Gifter stores today
   (Google sign-in data and sign-in times). Update `privacy.html` and `PRIVACY_POLICY_UPDATED`
