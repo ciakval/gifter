@@ -23,6 +23,9 @@
     {% block content %}{% endblock %}
   </main>
   {% endblock %}
+  <footer class="container py-4 mt-4 border-top small">
+    <a href="{% url 'privacy' %}">{% translate "Privacy policy" %}</a>
+  </footer>
   <script src="{% static 'vendor/bootstrap/bootstrap.bundle.min.js' %}" defer></script>
   {% block extra_body %}{% endblock %}
 </body>
