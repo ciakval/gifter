@@ -3,6 +3,19 @@
 {% block head_title %}{{ event.name }} - Gifter{% endblock %}
 
 {% block content %}
+{% if joined %}
+  <div class="alert alert-success" role="status">
+    {% if has_active_wishes %}
+      <p class="mb-2">{% translate "Want the others to see your wishes here?" %}</p>
+      <form method="post" action="{% url 'event_share_all' event.pk %}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-primary btn-sm">{% translate "Share all my wishes here" %}</button>
+      </form>
+    {% else %}
+      <p class="mb-0">{% translate "Add the things you would like, so the others can see them here." %} <a href="{% url 'wish_create' %}" class="alert-link">{% translate "Add wish" %}</a></p>
+    {% endif %}
+  </div>
+{% endif %}
 <h1 class="h3 mb-1">{{ event.name }}</h1>
 {% if event.date %}<p class="text-body-secondary mb-2">{{ event.date|date:"DATE_FORMAT" }}</p>{% endif %}
 {% if event.description %}<p>{{ event.description|linebreaksbr }}</p>{% endif %}
@@ -27,6 +40,20 @@
     <input type="text" id="copy-url" class="form-control mb-2" value="{{ invite_url }}" readonly>
     <button type="button" class="btn btn-outline-primary" data-copy-url="{{ invite_url }}" data-copied-label="{% translate 'Link copied' %}">{% translate "Copy link" %}</button>
   </div>
+</div>
+
+<h2 class="h4 mb-3">{% translate "Your wishes shared here" %}</h2>
+{% for wish in own_wishes %}
+  {% include "gifter/includes/owner_wish.html" %}
+{% empty %}
+  <p class="text-body-secondary">{% translate "None of your wishes are shared here yet." %}</p>
+{% endfor %}
+<div class="d-flex flex-wrap gap-2 mb-4">
+  <a href="{% url 'wishlist' %}" class="btn btn-outline-primary btn-sm">{% translate "My wishlist" %}</a>
+  <form method="post" action="{% url 'event_share_all' event.pk %}">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-outline-primary btn-sm">{% translate "Share all my wishes here" %}</button>
+  </form>
 </div>
 
 <h2 class="h4 mb-3">{% translate "Wishes" %}</h2>

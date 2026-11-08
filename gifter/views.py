@@ -12,6 +12,8 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.translation import gettext as _
+from django.utils.translation import ngettext
+from django.views.decorators.http import require_POST
 
 from .forms import EventForm, WishForm
 from .inapp import is_in_app_browser
@@ -127,6 +129,10 @@ def event_detail(request, pk):
         for membership in memberships
         if membership.user_id != request.user.pk
     ]
+    # Owner view: the viewer's own shared wishes, in plain owner markup (no claim information).
+    own_wishes = request.user.wishes.filter(events=event, status=Wish.Status.ACTIVE).order_by(
+        "priority", "-created_at", "-pk"
+    )
     return render(
         request,
         "gifter/event_detail.html",
@@ -135,8 +141,33 @@ def event_detail(request, pk):
             "memberships": memberships,
             "invite_url": invite_url,
             "member_cards": member_cards,
+            "own_wishes": own_wishes,
+            "joined": request.GET.get("joined") == "1",
+            "has_active_wishes": request.user.wishes.filter(status=Wish.Status.ACTIVE).exists(),
         },
     )
+
+
+@require_POST
+def event_share_all(request, pk):
+    event = _member_event_or_404(request.user, pk)
+    wishes = list(request.user.wishes.filter(status=Wish.Status.ACTIVE))
+    if not wishes:
+        messages.info(request, _("You have no wishes to share yet."))
+    else:
+        # Idempotent: the through table is unique per wish and event. Touches only this event.
+        event.wishes.add(*wishes)
+        count = len(wishes)
+        messages.success(
+            request,
+            ngettext(
+                "%(count)d wish is shared here now.",
+                "%(count)d wishes are shared here now.",
+                count,
+            )
+            % {"count": count},
+        )
+    return redirect("event_detail", pk=event.pk)
 
 
 def wishlist(request):

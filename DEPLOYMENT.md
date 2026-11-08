@@ -188,11 +188,10 @@ Revoke CI's deploy access: delete the `gh-gifter` line in `/home/deploy/.ssh/aut
 - Only seven `accounts/` routes exist (Google sign-in, sign-out, cancelled, error and the
   sign-up fallback). A test pins the list; everything else under `accounts/` is 404.
 - Rotating `SECRET_KEY` signs everyone out.
-- `/privacy/` must stay public and truthful. It describes only what Gifter stores today
-  (Google sign-in data and sign-in times). Update `privacy.html` and `PRIVACY_POLICY_UPDATED`
-  BEFORE shipping a feature that stores or shows new kinds of data: wishlists, events and
-  member lists (Phase 2), claims and chip-ins (Phase 3), backups and the language cookie
-  (Phase 4).
+- `/privacy/` must stay public and truthful. It now covers Google sign-in data, sign-in times,
+  events, memberships and wishes (including the soft delete: Gifter keeps a copy of deleted
+  wishes). Claims and chip-ins (Phase 3) and backups and the language cookie (Phase 4) must
+  still be added to `privacy.html` (and `PRIVACY_POLICY_UPDATED` bumped) BEFORE they ship.
 - HSTS starts at 3600 s (`SECURE_HSTS_SECONDS`); raise it after a week of working HTTPS.
 - Backups of `./data` are planned for Phase 4. Until then, copy all three SQLite files
   (`db.sqlite3`, `-wal`, `-shm`) together, or use `sqlite3 db.sqlite3 ".backup copy.sqlite3"`.

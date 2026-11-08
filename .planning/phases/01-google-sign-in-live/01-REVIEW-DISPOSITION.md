@@ -25,7 +25,7 @@ findings:
     title: "`promote_staff` trusts `User.email`, which allauth populates even when Google says it is unverified"
   - id: WR-06
     severity: warning
-    disposition: deferred
+    disposition: fixed
     title: "`Wish.claimed_by` stores claim state on the giftee-readable Wish row"
   - id: WR-07
     severity: warning
@@ -53,7 +53,7 @@ findings:
     title: "Sessions are never purged; long-lived sessions apply to superusers too"
   - id: IN-06
     severity: info
-    disposition: deferred
+    disposition: fixed
     title: "`models.py` leftovers"
   - id: IN-07
     severity: info
@@ -65,7 +65,7 @@ findings:
     title: "Authenticated visitor loses `next` on the landing page; proxy headers are trusted from the whole shared network"
 open: 0
 total: 15
-updated: 2026-11-08T17:49:00.000Z
+updated: 2026-11-08T20:00:00.000Z
 ---
 # Phase 01: Code Review Disposition
 
@@ -76,16 +76,16 @@ updated: 2026-11-08T17:49:00.000Z
 | WR-03 | warning | fixed | 01-07 |
 | WR-04 | warning | fixed | 01-07 |
 | WR-05 | warning | fixed | 01-07 |
-| WR-06 | warning | deferred | Phase 2, replace Wish.claimed_by with a Claim model before any wish UI |
+| WR-06 | warning | fixed | 02-02 (Wish has no claim column; claims become their own model in Phase 3) |
 | WR-07 | warning | deferred | Phase 4, with the I18N-01 language switcher |
 | IN-01 | info | deferred | Phase 4 hardening, CSP after inline styles are gone |
 | IN-02 | info | deferred | backlog, no shared cache in front of the app |
 | IN-03 | info | deferred | backlog, .dockerignore globs and image digests |
 | IN-04 | info | deferred | backlog, smoke script portability |
 | IN-05 | info | deferred | Phase 4 ops, clearsessions and staff session age |
-| IN-06 | info | deferred | Phase 2, together with WR-06 |
+| IN-06 | info | fixed | 02-02 |
 | IN-07 | info | deferred | Phase 4, language switcher |
-| IN-08 | info | deferred | Phase 2, invite flow keeps a safe next for signed-in visitors; proxy network trust note |
+| IN-08 | info | deferred | partial: safe next for signed-in visitors fixed in 02-01; proxy-network trust note still backlog |
 
 Dispositions: `open` (recorded, not yet triaged), `fixed`, `skipped`, `deferred`.
 Set `deferred` by hand and put the reason in the Source cell; both are preserved.

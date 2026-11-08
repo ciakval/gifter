@@ -12,7 +12,10 @@
       <p>{% translate "Gifter also records when you joined and when you last signed in." %}</p>
       <h2 class="h4 mt-4">{% translate "Events" %}</h2>
       <p>{% translate "When you create or join an event, Gifter stores the event's name, date and description, who created it, who its members are and when they joined. Every event also has an invite link." %}</p>
-      <p>{% translate "That is all Gifter stores about you for now. Before Gifter adds features that store more, such as wishlists, this page will be updated to say what they store and who can see it." %}</p>
+      <h2 class="h4 mt-4">{% translate "Wishes" %}</h2>
+      <p>{% translate "Gifter stores the wishes you add: name, description, priority, links, when you added and last changed them, and which events you share each one into." %}</p>
+      <p>{% translate "When you delete a wish it disappears from every page for everyone, but Gifter keeps a copy in its database. To have it erased, use the data request described under Keeping and deleting your data below." %}</p>
+      <p>{% translate "That is all Gifter stores about you for now. Before Gifter adds features that store more, this page will be updated to say what they store and who can see it." %}</p>
 
       <h2 class="h4 mt-4">{% translate "What Gifter does not get" %}</h2>
       <p>{% translate "Gifter never sees your Google password. It asks Google only for your basic profile and email address, never for your contacts, files, calendar or anything else, and it does not keep any Google access tokens." %}</p>
@@ -23,6 +26,7 @@
       <h2 class="h4 mt-4">{% translate "Who can see your information" %}</h2>
       <p>{% translate "Your Google account details are visible only to you and the site operator." %}</p>
       <p>{% translate "Every member of an event can see the event's details, the names of the other members (the name from their Google account, never their email address) and the event's invite link. Anyone who has the invite link can join the event after signing in, so share it only with people you want in the event. The site operator can see everything Gifter stores." %}</p>
+      <p>{% translate "Every member of an event can see the wishes you share into that event. A wish you have not shared into any event is seen only by you." %}</p>
       <p>{% translate "Gifter never sells or shares your data with anyone. There is no advertising and no analytics, and Gifter's pages load no scripts, fonts or images from other companies." %}</p>
       <p>{% blocktranslate trimmed %}Signing in is handled by Google, under the <a href="https://policies.google.com/privacy" rel="noopener noreferrer">Google Privacy Policy</a>.{% endblocktranslate %}</p>
 
