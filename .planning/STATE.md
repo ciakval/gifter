@@ -106,6 +106,12 @@ Recent decisions affecting current work:
 - Phase 1: The Bombur steps outside the repo (DNS CNAME, server `.env`, deploy key, GitHub secrets, Caddy block) need the user
 - Phase 3: Run discuss-phase before planning (un-sharing a claimed wish, release hand-over)
 
+## Deferred Verification
+
+| Phase | State | Resume |
+|-------|-------|--------|
+| 01 | verification_deferred_human | /gsd-verify-work 01 |
+
 ## Deferred Items
 
 Items acknowledged and deferred at milestone close, most recent first:
