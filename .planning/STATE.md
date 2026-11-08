@@ -3,16 +3,16 @@ gsd_state_version: "1.0"
 current_phase: 01
 current_phase_name: Google Sign-in Live
 status: executing
-stopped_at: Completed 01-06-PLAN.md
-last_updated: "2026-11-08T17:43:36.922Z"
+stopped_at: Completed 01-07-PLAN.md
+last_updated: "2026-11-08T17:52:01.352Z"
 last_activity: 2026-11-08
 last_activity_desc: Phase 01 execution started
-state_head: 3b4290ce65ca508d1d5b7171a806dbc03e4b89d3
+state_head: 03be8e21308d7e76ab1979e4c9856bec1abe3244
 progress:
   total_phases: 4
   completed_phases: 0
   total_plans: 8
-  completed_plans: 6
+  completed_plans: 7
   percent: 0
 ---
 
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-10-16)
 ## Current Position
 
 Phase: 01 (Google Sign-in Live) — EXECUTING
-Plan: 7 of 8
+Plan: 8 of 8
 Status: Ready to execute
 Last activity: 2026-11-08 — Phase 01 execution started
 
@@ -62,6 +62,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 01 P04 | 15 min | 2 tasks | 10 files |
 | Phase 01 P05 | multi-session | 3 tasks | 3 files |
 | Phase 01 P06 | 3 min | 3 tasks | 10 files |
+| Phase 01 P07 | 10min | 2 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -85,6 +86,8 @@ Recent decisions affecting current work:
 - [Phase 01]: 01-05: ciakval/gifter made public (GitHub Free has no branch protection on private repos; production env needs protected main); history scanned clean
 - [Phase 01]: 01-06: keep secrets: inherit and @v1 on the bombur-deploy call (v1 declares no workflow_call secrets; ciakval is sole collaborator); follow-up: declare DEPLOY_SSH_KEY in bombur-deploy then map explicitly
 - [Phase 01]: 01-06: /privacy/ must be updated (and PRIVACY_POLICY_UPDATED bumped) before wishlists/events/members (Phase 2), claims/chip-ins (Phase 3), backups/language cookie (Phase 4) ship
+- [Phase 01]: 01-07: accounts/ is an explicit seven-route allowlist pinned by a URL-table test; account_login is the landing redirect
+- [Phase 01]: 01-07: admin SocialAccount/EmailAddress are view/delete only (delete kept so user deletion cascades); promote_staff trusts only a Google-verified email
 
 ### Pending Todos
 
@@ -110,6 +113,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-11-08T17:43:36.896Z
-Stopped at: Completed 01-06-PLAN.md
+Last session: 2026-11-08T17:52:01.319Z
+Stopped at: Completed 01-07-PLAN.md
 Resume file: None
