@@ -343,3 +343,110 @@ class WishCrudTests(TestCase):
         by_name = dict(zip((n for n, _p, _d in specs), positions))
         order = sorted(by_name, key=by_name.get)
         self.assertEqual(order, ["high-new", "high-old", "normal-new", "normal-old", "low-new"])
+
+
+class ShareAllTests(TestCase):
+    def setUp(self):
+        self.anna = make_user("anna", first_name="Anna")
+        self.bob = make_user("bob", first_name="Bob")
+        self.event = make_event(self.anna, name="Family Christmas")
+        self.other = make_event(self.anna, name="Wedding")
+        join(self.event, self.bob)
+        self.url = f"/events/{self.event.pk}/share-all/"
+        self.client.force_login(self.anna)
+
+    def shares(self, event):
+        return Wish.events.through.objects.filter(event=event).count()
+
+    def make_three_plus_withdrawn(self):
+        wishes = [make_wish(self.anna, f"Wish {i}") for i in range(3)]
+        gone = make_wish(self.anna, "Gone", status=Wish.Status.WITHDRAWN)
+        return wishes, gone
+
+    def test_share_all_shares_active_wishes_only(self):
+        wishes, gone = self.make_three_plus_withdrawn()
+        response = self.client.post(self.url, follow=True)
+        self.assertRedirects(response, f"/events/{self.event.pk}/")
+        self.assertContains(response, "3 wishes are shared here now.")
+        self.assertEqual(self.shares(self.event), 3)
+        self.assertFalse(gone.events.exists())
+
+    def test_share_all_is_idempotent_and_local(self):
+        self.make_three_plus_withdrawn()
+        self.client.post(self.url)
+        self.client.post(self.url)
+        self.assertEqual(self.shares(self.event), 3)
+        self.assertEqual(self.shares(self.other), 0)
+
+    def test_get_is_405_and_shares_nothing(self):
+        self.make_three_plus_withdrawn()
+        self.assertEqual(self.client.get(self.url).status_code, 405)
+        self.assertEqual(self.shares(self.event), 0)
+
+    def test_non_member_post_is_404_and_shares_nothing(self):
+        carol = make_user("carol", first_name="Carol")
+        make_wish(carol, "Carol wish")
+        self.client.force_login(carol)
+        self.assertEqual(self.client.post(self.url).status_code, 404)
+        self.assertEqual(self.shares(self.event), 0)
+
+    def test_no_wishes_changes_nothing_and_says_so(self):
+        response = self.client.post(self.url, follow=True)
+        self.assertContains(response, "You have no wishes to share yet")
+        self.assertEqual(self.shares(self.event), 0)
+
+    def test_single_wish_uses_singular_message(self):
+        make_wish(self.anna, "Only")
+        response = self.client.post(self.url, follow=True)
+        self.assertContains(response, "1 wish is shared here now.")
+
+    def test_other_members_see_shared_wishes_in_standard_order(self):
+        t0 = datetime.datetime(2026, 11, 1, tzinfo=datetime.UTC)
+        specs = [("low-a", 3, 5), ("high-a", 1, 1), ("norm-new", 2, 4), ("norm-old", 2, 2)]
+        for name, priority, day in specs:
+            wish = make_wish(self.anna, name, priority=priority)
+            Wish.objects.filter(pk=wish.pk).update(created_at=t0 + datetime.timedelta(days=day))
+        self.client.post(self.url)
+        self.client.force_login(self.bob)
+        html = self.client.get(f"/events/{self.event.pk}/").content.decode()
+        order = sorted((n for n, _p, _d in specs), key=html.index)
+        self.assertEqual(order, ["high-a", "norm-new", "norm-old", "low-a"])
+
+    def test_own_section_lists_own_shared_wishes_and_not_others(self):
+        make_wish(self.anna, "Anna shared", events=[self.event])
+        make_wish(self.anna, "Anna private")
+        make_wish(self.bob, "Bob shared", events=[self.event])
+        page = self.client.get(f"/events/{self.event.pk}/")
+        html = page.content.decode()
+        self.assertIn("Your wishes shared here", html)
+        own = html.split("Your wishes shared here", 1)[1]
+        own = own.split('<div class="card-header', 1)[0]
+        self.assertIn("Anna shared", own)
+        self.assertNotIn("Anna private", html)
+        self.assertNotIn("Bob shared", own)
+        self.assertContains(page, 'href="/wishes/"')
+        self.assertNotIn("claim", own.lower())
+        self.assertContains(page, f'action="{self.url}"')
+
+    def test_own_section_empty_state(self):
+        self.assertContains(
+            self.client.get(f"/events/{self.event.pk}/"), "None of your wishes are shared here yet."
+        )
+
+    def test_joined_callout_with_wishes_offers_share_all(self):
+        make_wish(self.anna, "Something")
+        page = self.client.get(f"/events/{self.event.pk}/?joined=1")
+        self.assertContains(page, "Want the others to see your wishes here?")
+        self.assertContains(page, f'action="{self.url}"')
+
+    def test_joined_callout_without_wishes_links_to_new_wish(self):
+        page = self.client.get(f"/events/{self.event.pk}/?joined=1")
+        self.assertContains(page, "so the others can see them here")
+        self.assertContains(page, 'href="/wishes/new/"')
+        self.assertNotContains(page, "Want the others to see your wishes here?")
+
+    def test_no_callout_without_joined_flag(self):
+        make_wish(self.anna, "Something")
+        self.assertNotContains(
+            self.client.get(f"/events/{self.event.pk}/"), "Want the others to see your wishes here?"
+        )

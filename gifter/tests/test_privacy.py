@@ -29,10 +29,17 @@ REQUIRED_PHRASES = [
     "European Union",
     "invite link",
     "names of the other members",
+    "keeps a copy",
+    "seen only by you",
 ]
 
 
 class PrivacyPageTests(TestCase):
+    def test_policy_does_not_mention_claims_or_chip_ins_yet(self):
+        html = self.client.get(PRIVACY_URL).content.decode().lower()
+        self.assertNotIn("claim", html)
+        self.assertNotIn("chip", html)
+
     def test_anonymous_gets_page_without_redirect(self):
         response = self.client.get(PRIVACY_URL)
         self.assertEqual(response.status_code, 200)
