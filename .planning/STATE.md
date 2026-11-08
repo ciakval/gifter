@@ -2,17 +2,17 @@
 gsd_state_version: "1.0"
 current_phase: 01
 current_phase_name: Google Sign-in Live
-status: executing
-stopped_at: Completed 01-07-PLAN.md
-last_updated: "2026-11-08T17:52:01.352Z"
+status: verifying
+stopped_at: Completed 01-08-PLAN.md (human checks deferred)
+last_updated: "2026-11-08T18:29:26.066Z"
 last_activity: 2026-11-08
 last_activity_desc: Phase 01 execution started
-state_head: 03be8e21308d7e76ab1979e4c9856bec1abe3244
+state_head: 1a47ff0a199832b709104faba2c90c22a1a55767
 progress:
   total_phases: 4
   completed_phases: 0
   total_plans: 8
-  completed_plans: 7
+  completed_plans: 8
   percent: 0
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-10-16)
 
 Phase: 01 (Google Sign-in Live) — EXECUTING
 Plan: 8 of 8
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-11-08 — Phase 01 execution started
 
 Progress: [░░░░░░░░░░] 0%
@@ -63,6 +63,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 01 P05 | multi-session | 3 tasks | 3 files |
 | Phase 01 P06 | 3 min | 3 tasks | 10 files |
 | Phase 01 P07 | 10min | 2 tasks | 9 files |
+| Phase 01 P08 | multi-session | 3 tasks | 0 files |
 
 ## Accumulated Context
 
@@ -88,10 +89,12 @@ Recent decisions affecting current work:
 - [Phase 01]: 01-06: /privacy/ must be updated (and PRIVACY_POLICY_UPDATED bumped) before wishlists/events/members (Phase 2), claims/chip-ins (Phase 3), backups/language cookie (Phase 4) ship
 - [Phase 01]: 01-07: accounts/ is an explicit seven-route allowlist pinned by a URL-table test; account_login is the landing redirect
 - [Phase 01]: 01-07: admin SocialAccount/EmailAddress are view/delete only (delete kept so user deletion cascades); promote_staff trusts only a Google-verified email
+- [Phase 01]: 01-08: consent screen reported published (In production) by the user; Branding fields and never-test-user sign-in not individually confirmed, human checks 1-6 deferred to end-of-phase UAT
 
 ### Pending Todos
 
-- [blocking for Christmas rollout] Add a /privacy/ page linked from the footer, fill Google Branding and Publish the consent screen before relatives get invites (consent screen is still in Testing; only test users can sign in)
+- [deferred human verification, from 01-08; user declined to run them on 2026-11-08, NOT passed] (1) Sign in with a Google account never added as a test user, no "Access blocked" (SC-2, AUTH-01; the only proof the publish worked); (2) that account bounced from /gifter-admin/; (3) desktop session survives deploys and a full browser restart, sign out and sign in again (AUTH-02, SC-1); (4) phone layout of landing, /events/, footer Privacy link; (5) real Messenger/Instagram in-app hint with exact menu wording (SC-4, OPS-04). Run at end-of-phase UAT (/gsd-verify-work 1).
+- Confirm in Google Cloud Console that Branding (home page, /privacy/, remesh.cz, no logo) is saved and Data access lists only openid, email, profile (user reported "published"; fields not individually confirmed)
 - Raise HSTS max-age above 3600 once the site is stable
 - Add a health endpoint and set health_path in the reusable deploy call
 - Capture real Messenger/Instagram in-app menu wording and adjust the hint copy
@@ -99,7 +102,7 @@ Recent decisions affecting current work:
 ### Blockers/Concerns
 
 - Deadlines: features complete ~15 Nov, family dry-run 15–22 Nov, freeze 1 Dec 2026
-- Phase 1 (still open after 01-05): The Google OAuth consent screen must be published ("In production") so relatives' accounts work. This needs the user's Google Cloud Console access.
+- Phase 1: Consent screen reported published ("In production") by the user on 2026-11-08; unverified until a never-added Google account signs in (see deferred human verification todo). /privacy/ is live.
 - Phase 1: The Bombur steps outside the repo (DNS CNAME, server `.env`, deploy key, GitHub secrets, Caddy block) need the user
 - Phase 3: Run discuss-phase before planning (un-sharing a claimed wish, release hand-over)
 
@@ -113,6 +116,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-11-08T17:52:01.319Z
-Stopped at: Completed 01-07-PLAN.md
+Last session: 2026-11-08T18:29:26.038Z
+Stopped at: Completed 01-08-PLAN.md (human checks deferred)
 Resume file: None
