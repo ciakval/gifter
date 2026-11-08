@@ -1,12 +1,22 @@
 {% extends "gifter/base.html" %}
 {% load i18n %}
+{% block head_title %}{% translate "My events" %} - Gifter{% endblock %}
 
 {% block content %}
-<div class="py-4">
-  <h1 class="h3 mb-4">{% blocktranslate with name=user.display_name %}Hi {{ name }}, you're signed in.{% endblocktranslate %}</h1>
-  <form method="post" action="{% url 'account_logout' %}">
-    {% csrf_token %}
-    <button type="submit" class="btn btn-outline-secondary">{% translate "Sign out" %}</button>
-  </form>
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h3 mb-0">{% translate "My events" %}</h1>
+  <a href="{% url 'event_create' %}" class="btn btn-primary">{% translate "Create event" %}</a>
 </div>
+{% if events %}
+  <div class="list-group">
+    {% for event in events %}
+      <a href="{% url 'event_detail' event.pk %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+        <span>{{ event.name }}</span>
+        {% if event.date %}<span class="text-body-secondary small">{{ event.date|date:"DATE_FORMAT" }}</span>{% endif %}
+      </a>
+    {% endfor %}
+  </div>
+{% else %}
+  <p class="text-body-secondary">{% translate "You are not in any events yet. Create one, or open an invite link someone sent you." %}</p>
+{% endif %}
 {% endblock %}

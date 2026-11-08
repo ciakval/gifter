@@ -125,7 +125,7 @@ class GoogleSignInTests(GoogleRoundTripMixin, TestCase):
         self.assertEqual(callback["Location"], "/events/")
 
         page = self.client.get("/events/")
-        self.assertContains(page, "Hi Anna")
+        self.assertContains(page, "My events")
         user = get_user_model().objects.get(first_name="Anna")
         self.assertEqual(user.last_name, "Novak")
         self.assertEqual(get_user_model().objects.count(), 1)

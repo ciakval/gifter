@@ -1,0 +1,23 @@
+{% extends "gifter/base.html" %}
+{% load i18n %}
+{% block head_title %}{{ event.name }} - Gifter{% endblock %}
+
+{% block content %}
+<h1 class="h3 mb-1">{{ event.name }}</h1>
+{% if event.date %}<p class="text-body-secondary mb-2">{{ event.date|date:"DATE_FORMAT" }}</p>{% endif %}
+{% if event.description %}<p>{{ event.description|linebreaksbr }}</p>{% endif %}
+
+<details class="mb-4">
+  <summary class="fw-semibold">{% blocktranslate count counter=memberships|length %}{{ counter }} member{% plural %}{{ counter }} members{% endblocktranslate %}</summary>
+  <ul class="mt-2">
+    {% for membership in memberships %}
+      <li>{{ membership.user.display_name }}</li>
+    {% endfor %}
+  </ul>
+  {% if memberships|length == 1 %}
+    <p class="text-body-secondary small">{% translate "You are the only member so far. Send the invite link to your family." %}</p>
+  {% endif %}
+</details>
+
+{# Plan 02-02: wish sections go here, below the members list. #}
+{% endblock %}

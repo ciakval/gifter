@@ -8,9 +8,24 @@
   {% block extra_head %}{% endblock %}
 </head>
 <body>
-  <nav class="navbar navbar-expand bg-body-tertiary mb-4">
+  <nav class="navbar navbar-expand-sm bg-body-tertiary mb-4">
     <div class="container">
       <a class="navbar-brand fw-semibold" href="{% url 'landing' %}">Gifter</a>
+      {% if user.is_authenticated %}
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#gifter-nav" aria-controls="gifter-nav" aria-expanded="false" aria-label="{% translate 'Toggle navigation' %}">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="gifter-nav">
+        <ul class="navbar-nav me-auto">
+          <li class="nav-item"><a class="nav-link" href="{% url 'home' %}">{% translate "Events" %}</a></li>
+          {# 02-02 adds "My wishlist" here #}
+        </ul>
+        <form method="post" action="{% url 'account_logout' %}" class="d-flex">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-link nav-link">{% translate "Sign out" %}</button>
+        </form>
+      </div>
+      {% endif %}
     </div>
   </nav>
   {% block body %}

@@ -1,0 +1,19 @@
+{% extends "gifter/base.html" %}
+{% load i18n %}
+{% block head_title %}{% translate "Create event" %} - Gifter{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-6">
+    <h1 class="h3 mb-3">{% translate "Create event" %}</h1>
+    <form method="post" novalidate>
+      {% csrf_token %}
+      {% if form.non_field_errors %}
+        <div class="alert alert-danger" role="alert">{{ form.non_field_errors }}</div>
+      {% endif %}
+      {% for field in form.visible_fields %}{% include "gifter/includes/form_field.html" %}{% endfor %}
+      <button type="submit" class="btn btn-primary">{% translate "Create event" %}</button>
+    </form>
+  </div>
+</div>
+{% endblock %}
