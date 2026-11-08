@@ -1,0 +1,36 @@
+{% extends "gifter/base.html" %}
+{% load i18n %}
+{% block head_title %}{% if is_edit %}{% translate "Edit wish" %}{% else %}{% translate "Add wish" %}{% endif %} - Gifter{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-6">
+    <h1 class="h3 mb-3">{% if is_edit %}{% translate "Edit wish" %}{% else %}{% translate "Add wish" %}{% endif %}</h1>
+    <form method="post" novalidate>
+      {% csrf_token %}
+      {% if form.non_field_errors %}
+        <div class="alert alert-danger" role="alert">{{ form.non_field_errors }}</div>
+      {% endif %}
+      {% for field in form.visible_fields %}{% if field.name != "events" %}{% include "gifter/includes/form_field.html" %}{% endif %}{% endfor %}
+      <fieldset class="mb-3">
+        <legend class="form-label fs-6">{% translate "Share into events" %}</legend>
+        {% if form.fields.events.queryset.exists %}
+          {% for checkbox in form.events %}
+            <div class="form-check">
+              {{ checkbox.tag }}
+              <label class="form-check-label" for="{{ checkbox.id_for_label }}">{{ checkbox.choice_label }}</label>
+            </div>
+          {% endfor %}
+        {% else %}
+          <p class="text-body-secondary small mb-0">{% translate "You are not in any events yet. You can share this wish later." %}</p>
+        {% endif %}
+        {% for error in form.events.errors %}
+          <div class="invalid-feedback d-block">{{ error }}</div>
+        {% endfor %}
+      </fieldset>
+      <button type="submit" class="btn btn-primary">{% if is_edit %}{% translate "Save" %}{% else %}{% translate "Add wish" %}{% endif %}</button>
+      <a href="{% url 'wishlist' %}" class="btn btn-link">{% translate "Cancel" %}</a>
+    </form>
+  </div>
+</div>
+{% endblock %}

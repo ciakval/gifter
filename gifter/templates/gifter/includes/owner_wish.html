@@ -1,0 +1,23 @@
+{% load i18n %}{% comment %}
+Owner view of one wish (My wishlist and "Your wishes shared here"). Renders no claim data, ever.
+The participant view is a separate file (member_wish.html); never merge them.
+{% endcomment %}
+<div class="card mb-3">
+  <div class="card-body">
+    <h3 class="h6 card-title mb-1">{{ wish.name }} <span class="badge text-bg-secondary">{{ wish.get_priority_display }}</span></h3>
+    {% if wish.description %}<p class="mb-2">{{ wish.description|linebreaksbr }}</p>{% endif %}
+    {% if wish.link_items %}
+      <p class="mb-2 small">{% for link in wish.link_items %}<a href="{{ link.url }}" target="_blank" rel="noopener noreferrer nofollow">{{ link.domain }}</a>{% if not forloop.last %}, {% endif %}{% endfor %}</p>
+    {% endif %}
+    {% if show_events %}
+      <p class="text-body-secondary small mb-2">
+        {% if wish.events.all %}{% translate "Shared in" %}: {% for shared_event in wish.events.all %}{{ shared_event.name }}{% if not forloop.last %}, {% endif %}{% endfor %}
+        {% else %}{% translate "Not shared in any event yet." %}{% endif %}
+      </p>
+    {% endif %}
+    {% if show_actions %}
+      <a href="{% url 'wish_edit' wish.pk %}" class="btn btn-sm btn-outline-primary">{% translate "Edit" %}</a>
+      <a href="{% url 'wish_delete' wish.pk %}" class="btn btn-sm btn-outline-danger">{% translate "Delete" %}</a>
+    {% endif %}
+  </div>
+</div>

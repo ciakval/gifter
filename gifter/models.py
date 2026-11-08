@@ -1,4 +1,5 @@
 import secrets
+from urllib.parse import urlsplit
 
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser
@@ -76,14 +77,47 @@ class Membership(models.Model):
         return self.event.name
 
 
-# Create your models here.
 class Wish(models.Model):
-    name = models.CharField(max_length=255)
-    description = models.TextField()
+    class Priority(models.IntegerChoices):
+        HIGH = 1, _("High")
+        NORMAL = 2, _("Normal")
+        LOW = 3, _("Low")
+
+    class Status(models.TextChoices):
+        ACTIVE = "active", _("Active")
+        WITHDRAWN = "withdrawn", _("Withdrawn")
+
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="wishes"
+    )
+    name = models.CharField(_("name"), max_length=200)
+    description = models.TextField(_("description"), blank=True)
+    priority = models.PositiveSmallIntegerField(
+        _("priority"), choices=Priority, default=Priority.NORMAL
+    )
+    # Normalized web addresses, one per line (see forms.normalize_links).
+    links = models.TextField(_("links"), blank=True)
+    status = models.CharField(
+        _("status"), max_length=10, choices=Status, default=Status.ACTIVE, db_index=True
+    )
+    # Sharing is explicit: a wish is visible in an event only through a row here.
+    events = models.ManyToManyField(
+        "Event", related_name="wishes", blank=True, verbose_name=_("events")
+    )
     created_at = models.DateTimeField(auto_now_add=True)
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='wishes')
-    is_active = models.BooleanField(default=True)
-    claimed_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name='claimed_wishes')
+    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return self.name
+
+    @property
+    def link_items(self):
+        items = []
+        for line in self.links.splitlines():
+            url = line.strip()
+            if not url:
+                continue
+            domain = urlsplit(url).hostname or url
+            domain = domain.removeprefix("www.")
+            items.append({"url": url, "domain": domain})
+        return items

@@ -13,9 +13,9 @@ from django.urls import reverse
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.translation import gettext as _
 
-from .forms import EventForm
+from .forms import EventForm, WishForm
 from .inapp import is_in_app_browser
-from .models import Event, Membership
+from .models import Event, Membership, Wish
 
 # Bump whenever privacy.html changes. The policy must be updated BEFORE a feature that
 # stores or shows new kinds of data ships (see DEPLOYMENT.md).
@@ -111,11 +111,54 @@ def event_detail(request, pk):
     event = _member_event_or_404(request.user, pk)
     memberships = event.memberships.select_related("user").order_by("joined_at", "pk")
     invite_url = request.build_absolute_uri(reverse("invite", args=[event.invite_token]))
+    # Participant view: other members' active wishes explicitly shared into this event.
+    shared = (
+        Wish.objects.filter(
+            events=event, status=Wish.Status.ACTIVE, owner__memberships__event=event
+        )
+        .exclude(owner=request.user)
+        .order_by("priority", "-created_at", "-pk")
+    )
+    by_owner = {}
+    for wish in shared:
+        by_owner.setdefault(wish.owner_id, []).append(wish)
+    member_cards = [
+        {"user": membership.user, "wishes": by_owner.get(membership.user_id, [])}
+        for membership in memberships
+        if membership.user_id != request.user.pk
+    ]
     return render(
         request,
         "gifter/event_detail.html",
-        {"event": event, "memberships": memberships, "invite_url": invite_url},
+        {
+            "event": event,
+            "memberships": memberships,
+            "invite_url": invite_url,
+            "member_cards": member_cards,
+        },
     )
+
+
+def wishlist(request):
+    wishes = (
+        request.user.wishes.filter(status=Wish.Status.ACTIVE)
+        .prefetch_related("events")
+        .order_by("priority", "-created_at", "-pk")
+    )
+    return render(request, "gifter/wishlist.html", {"wishes": wishes})
+
+
+def wish_create(request):
+    form = WishForm(request.POST or None, owner=request.user)
+    if request.method == "POST" and form.is_valid():
+        with transaction.atomic():
+            wish = form.save(commit=False)
+            wish.owner = request.user
+            wish.save()
+            form.save_m2m()
+        messages.success(request, _("Wish added."))
+        return redirect("wishlist")
+    return render(request, "gifter/wish_form.html", {"form": form})
 
 
 @login_not_required

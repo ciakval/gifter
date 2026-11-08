@@ -18,7 +18,7 @@
       <div class="collapse navbar-collapse" id="gifter-nav">
         <ul class="navbar-nav me-auto">
           <li class="nav-item"><a class="nav-link" href="{% url 'home' %}">{% translate "Events" %}</a></li>
-          {# 02-02 adds "My wishlist" here #}
+          <li class="nav-item"><a class="nav-link" href="{% url 'wishlist' %}">{% translate "My wishlist" %}</a></li>
         </ul>
         <form method="post" action="{% url 'account_logout' %}" class="d-flex">
           {% csrf_token %}

@@ -29,7 +29,19 @@
   </div>
 </div>
 
-{# Plan 02-02: wish sections go here, below the members list. #}
+<h2 class="h4 mb-3">{% translate "Wishes" %}</h2>
+{% for card in member_cards %}
+  <div class="card mb-3">
+    <div class="card-header fw-semibold">{{ card.user.display_name }}</div>
+    <div class="card-body">
+      {% for wish in card.wishes %}
+        {% include "gifter/includes/member_wish.html" %}
+      {% empty %}
+        <p class="text-body-secondary mb-0">{% translate "No wishes shared here yet." %}</p>
+      {% endfor %}
+    </div>
+  </div>
+{% endfor %}
 {% endblock %}
 
 {% block extra_body %}<script src="{% static 'gifter/landing.js' %}" defer></script>{% endblock %}

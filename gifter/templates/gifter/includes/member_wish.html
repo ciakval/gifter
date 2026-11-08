@@ -1,0 +1,10 @@
+{% load i18n %}{% comment %}
+Participant view of one wish on an event page. Phase 3 adds claim UI to this file only.
+{% endcomment %}
+<div class="mb-3">
+  <div class="fw-semibold">{{ wish.name }} <span class="badge text-bg-secondary">{{ wish.get_priority_display }}</span></div>
+  {% if wish.description %}<div>{{ wish.description|linebreaksbr }}</div>{% endif %}
+  {% if wish.link_items %}
+    <div class="small">{% for link in wish.link_items %}<a href="{{ link.url }}" target="_blank" rel="noopener noreferrer nofollow">{{ link.domain }}</a>{% if not forloop.last %}, {% endif %}{% endfor %}</div>
+  {% endif %}
+</div>
