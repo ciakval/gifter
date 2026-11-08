@@ -35,6 +35,10 @@ CSRF_TRUSTED_ORIGINS = [
     f"https://{host}" for host in PUBLIC_HOSTS if host not in ("localhost", "127.0.0.1")
 ]
 
+# Optional. /privacy/ shows it as the address for data requests (e.g. deletion); empty means
+# the page tells people to ask whoever invited them. Set on the server, never hard-coded.
+GIFTER_CONTACT_EMAIL = env("GIFTER_CONTACT_EMAIL", default="").strip()
+
 GOOGLE_CLIENT_ID = env(
     "GOOGLE_CLIENT_ID",
     default="dev-placeholder-client-id" if DEBUG else environ.Env.NOTSET,
@@ -132,6 +136,8 @@ SOCIALACCOUNT_ONLY = True
 SOCIALACCOUNT_EMAIL_VERIFICATION = "none"  # required by SOCIALACCOUNT_ONLY
 SOCIALACCOUNT_AUTO_SIGNUP = True
 SOCIALACCOUNT_LOGIN_ON_GET = False  # sign-in must be a CSRF-protected POST (D-03)
+# The privacy page promises that no Google access tokens are kept; this pins that promise.
+SOCIALACCOUNT_STORE_TOKENS = False
 SOCIALACCOUNT_PROVIDERS = {
     "google": {  # keep everything in ONE dict
         "APPS": [

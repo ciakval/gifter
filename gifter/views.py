@@ -1,10 +1,16 @@
+import datetime
 from urllib.parse import urlencode
 
+from django.conf import settings
 from django.contrib.auth.decorators import login_not_required
 from django.shortcuts import redirect, render
 from django.urls import reverse
 
 from .inapp import is_in_app_browser
+
+# Bump whenever privacy.html changes. The policy must be updated BEFORE a feature that
+# stores or shows new kinds of data ships (see DEPLOYMENT.md).
+PRIVACY_POLICY_UPDATED = datetime.date(2026, 11, 8)
 
 
 def _landing_path(**params):
@@ -31,6 +37,16 @@ def landing(request):
         context["copy_url"] = request.build_absolute_uri(_landing_path(next=next_url))
         context["force_url"] = _landing_path(force="1", next=next_url)
     return render(request, "gifter/landing.html", context)
+
+
+@login_not_required
+def privacy(request):
+    # Public, static page: reads only two constants, never any user or wish data.
+    return render(
+        request,
+        "gifter/privacy.html",
+        {"contact_email": settings.GIFTER_CONTACT_EMAIL, "updated": PRIVACY_POLICY_UPDATED},
+    )
 
 
 def home(request):

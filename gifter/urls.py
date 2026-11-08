@@ -5,4 +5,5 @@ from . import views
 urlpatterns = [
     path("", views.landing, name="landing"),
     path("events/", views.home, name="home"),
+    path("privacy/", views.privacy, name="privacy"),
 ]
