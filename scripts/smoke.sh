@@ -109,4 +109,17 @@ client_id="$(printf '%s' "$loc" | sed -E 's/.*[?&]client_id=([^&]*).*/\1/')"
 echo "client_id=$client_id"
 pass "(g) OAuth start redirects to Google with redirect_uri $ORIGIN/accounts/google/login/callback/"
 
+# (h) public privacy policy: 200 anonymously, no redirect, real policy text
+code="$(get "$TMP/h.head" "$TMP/h.body" /privacy/)"
+[ "$code" = "200" ] || fail "(h) GET /privacy/ returned $code, expected 200 without a redirect"
+grep -q 'Privacy policy' "$TMP/h.body" || fail "(h) /privacy/ lacks the text 'Privacy policy'"
+if grep -q 'Using the URLconf' "$TMP/h.body"; then
+  fail "(h) /privacy/ shows Django's debug page: DEBUG is on"
+fi
+pass "(h) GET /privacy/ is 200 anonymously and carries the policy"
+
+# (i) the landing page (fetched in (a)) links to the policy
+grep -q 'href="/privacy/"' "$TMP/a.body" || fail '(i) landing page lacks href="/privacy/"'
+pass "(i) landing page links to /privacy/"
+
 echo "SMOKE OK"
