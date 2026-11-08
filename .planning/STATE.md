@@ -3,16 +3,16 @@ gsd_state_version: "1.0"
 current_phase: 2
 current_phase_name: Events, Wishlists & Browsing
 status: executing
-stopped_at: Completed 01-08-PLAN.md (human checks deferred)
-last_updated: "2026-11-08T19:10:45.654Z"
+stopped_at: Completed 02-01-PLAN.md
+last_updated: "2026-11-08T19:16:02.643Z"
 last_activity: 2026-11-08
-last_activity_desc: Phase 01 execution started
-state_head: 21e1ddc327ffd6571d5c18966fa5e47703f6774b
+last_activity_desc: Phase 2 execution started
+state_head: 77d14ba636cb8662e08f1ef1e7165e29f2ef2598
 progress:
   total_phases: 4
   completed_phases: 0
   total_plans: 10
-  completed_plans: 8
+  completed_plans: 9
   percent: 0
 ---
 
@@ -23,14 +23,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-10-16)
 
 **Core value:** Participants in an event can see what someone wishes for and coordinate who buys what — without the giftee ever finding out who claimed what.
-**Current focus:** Phase 01 — Google Sign-in Live
+**Current focus:** Phase 2 — Events, Wishlists & Browsing
 
 ## Current Position
 
-Phase: 2 (Events, Wishlists & Browsing) — READY TO EXECUTE
-Plan: 8 of 8
+Phase: 2 (Events, Wishlists & Browsing) — EXECUTING
+Plan: 2 of 2
 Status: Ready to execute
-Last activity: 2026-11-08 — Phase 01 execution started
+Last activity: 2026-11-08 — Phase 2 execution started
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -64,6 +64,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 01 P06 | 3 min | 3 tasks | 10 files |
 | Phase 01 P07 | 10min | 2 tasks | 9 files |
 | Phase 01 P08 | multi-session | 3 tasks | 0 files |
+| Phase 02 P01 | 8min | 2 tasks | 16 files |
 
 ## Accumulated Context
 
@@ -90,6 +91,8 @@ Recent decisions affecting current work:
 - [Phase 01]: 01-07: accounts/ is an explicit seven-route allowlist pinned by a URL-table test; account_login is the landing redirect
 - [Phase 01]: 01-07: admin SocialAccount/EmailAddress are view/delete only (delete kept so user deletion cascades); promote_staff trusts only a Google-verified email
 - [Phase 01]: 01-08: consent screen reported published (In production) by the user; Branding fields and never-test-user sign-in not individually confirmed, human checks 1-6 deferred to end-of-phase UAT
+- [Phase 02]: Event.created_by is SET_NULL so account deletion never blocks on events
+- [Phase 02]: Landing never follows next into the admin path (avoids redirect loop with admin login redirect); invite visits by anonymous users always store token and redirect
 
 ### Pending Todos
 
@@ -122,6 +125,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-11-08T18:29:26.038Z
-Stopped at: Completed 01-08-PLAN.md (human checks deferred)
+Last session: 2026-11-08T19:16:02.579Z
+Stopped at: Completed 02-01-PLAN.md
 Resume file: None

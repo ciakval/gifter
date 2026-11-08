@@ -24,11 +24,11 @@ Requirements for the Christmas 2026 release. Each maps to roadmap phases.
 
 ### Events
 
-- [ ] **EVNT-01**: User can create an event with a name and optional date/description
-- [ ] **EVNT-02**: Event creator can copy an invite link for the event
-- [ ] **EVNT-03**: A person opening the invite link signs in (if needed) and joins after an explicit confirm; merely opening/previewing the link never joins
-- [ ] **EVNT-04**: Member can see the list of members of an event
-- [ ] **EVNT-05**: User can see a list of the events they belong to
+- [x] **EVNT-01**: User can create an event with a name and optional date/description
+- [x] **EVNT-02**: Event creator can copy an invite link for the event
+- [x] **EVNT-03**: A person opening the invite link signs in (if needed) and joins after an explicit confirm; merely opening/previewing the link never joins
+- [x] **EVNT-04**: Member can see the list of members of an event
+- [x] **EVNT-05**: User can see a list of the events they belong to
 
 ### Wishes
 
@@ -123,11 +123,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | AUTH-01 | Phase 1 | Complete |
 | AUTH-02 | Phase 1 | Complete |
 | AUTH-03 | Phase 1 | Complete |
-| EVNT-01 | Phase 2 | Pending |
-| EVNT-02 | Phase 2 | Pending |
-| EVNT-03 | Phase 2 | Pending |
-| EVNT-04 | Phase 2 | Pending |
-| EVNT-05 | Phase 2 | Pending |
+| EVNT-01 | Phase 2 | Complete |
+| EVNT-02 | Phase 2 | Complete |
+| EVNT-03 | Phase 2 | Complete |
+| EVNT-04 | Phase 2 | Complete |
+| EVNT-05 | Phase 2 | Complete |
 | WISH-01 | Phase 2 | Pending |
 | WISH-02 | Phase 2 | Pending |
 | WISH-03 | Phase 2 | Pending |
