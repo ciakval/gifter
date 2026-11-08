@@ -1,8 +1,8 @@
 ---
 phase: 01-google-sign-in-live
-verified: 2026-10-20T16:20:00Z
-status: gaps_found
-score: 5/6 must-haves verified
+verified: 2026-11-08T18:40:00Z
+status: human_needed
+score: 4/5 must-haves verified
 covered_files:
   - .env.example
   - .github/workflows/deploy.yml
@@ -16,22 +16,31 @@ covered_files:
   - .planning/phases/01-google-sign-in-live/01-04-SUMMARY.md
   - .planning/phases/01-google-sign-in-live/01-05-PLAN.md
   - .planning/phases/01-google-sign-in-live/01-05-SUMMARY.md
+  - .planning/phases/01-google-sign-in-live/01-06-PLAN.md
+  - .planning/phases/01-google-sign-in-live/01-06-SUMMARY.md
+  - .planning/phases/01-google-sign-in-live/01-07-PLAN.md
+  - .planning/phases/01-google-sign-in-live/01-07-SUMMARY.md
+  - .planning/phases/01-google-sign-in-live/01-08-PLAN.md
+  - .planning/phases/01-google-sign-in-live/01-08-SUMMARY.md
   - DEPLOYMENT.md
   - Dockerfile
   - compose.yaml
+  - gifter/adapters.py
   - gifter/admin.py
   - gifter/inapp.py
   - gifter/management/commands/promote_staff.py
   - gifter/models.py
   - gifter/static/gifter/landing.js
-  - gifter/templates/allauth/layouts/base.html
   - gifter/templates/gifter/base.html
   - gifter/templates/gifter/home.html
   - gifter/templates/gifter/landing.html
+  - gifter/templates/gifter/privacy.html
   - gifter/tests/test_allauth_pages.py
   - gifter/tests/test_auth.py
   - gifter/tests/test_inapp.py
   - gifter/tests/test_lockdown.py
+  - gifter/tests/test_privacy.py
+  - gifter/urls.py
   - gifter/views.py
   - pyproject.toml
   - scripts/container-smoke.sh
@@ -39,46 +48,48 @@ covered_files:
   - uv.lock
   - web/settings.py
   - web/urls.py
-covered_digest: "v3:sha256:77b283f8e40428de1e3f59358d4b2349beec2d41f6f9d83b7db7fc068f9e5056"
-behavior_unverified: 0
+covered_digest: "v4:sha256:61bef4083cc9f14016240ad9f53d62af60e4e6994f4040138ff8a4e2d0784426"
+behavior_unverified: 1
 overrides_applied: 0
-gaps:
-  - truth: "A user can sign in with Google, including a user whose account was never added as a test user (ROADMAP SC-2; phase goal: anyone with a Google account can sign in)"
-    status: failed
-    reason: "The Google OAuth consent screen is still in Testing status. Only listed test users can sign in; any other relative's Google account is refused by Google. Publishing is blocked because Google's Branding step requires a privacy policy URL and the app has no privacy page. 01-05 SUMMARY records this as 'NOT MET' (deviation 2, coverage D6)."
-    artifacts:
-      - path: "gifter/urls.py"
-        issue: "No /privacy/ route or template exists, so the Google Branding step cannot be completed"
-      - path: "gifter/templates/gifter/base.html"
-        issue: "No footer link to a privacy page"
-    missing:
-      - "Add a public /privacy/ page (login_not_required) linked from the landing page and footer"
-      - "Fill the Google Auth Platform Branding step and Publish app to In production (basic scopes only, no verification needed); user-only action in Google Cloud Console"
-      - "Re-test with a Google account that was never added as a test user (no 'app is being tested' screen)"
-deferred: []
+re_verification:
+  previous_status: gaps_found
+  previous_score: 5/6
+  gaps_closed:
+    - "Missing /privacy/ page and footer link (code side of the SC-2 gap): now live, 200 anonymously, linked from the landing footer"
+  gaps_remaining: []
+  regressions: []
+behavior_unverified_items:
+  - truth: "A user whose Google account was never added as a test user can sign in (ROADMAP SC-2, AUTH-01)"
+    test: "From a Google account that was never a test user, open https://gifter.remesh.cz, press the Google button, finish the Google flow"
+    expected: "No 'Access blocked' or 'app is being tested' screen from Google; lands on /events/ greeted by name"
+    why_human: "The user reports the consent screen is now Published (In production), but Google Cloud Console state is not observable from the repo or from outside, and the user declined to run the sign-in. Nothing in the codebase can prove Google's side."
 human_verification:
-  - test: "Sign in on a phone, fully close and reopen the browser, open https://gifter.remesh.cz/events/"
-    expected: "Still signed in with no new Google prompt (90-day persistent cookie); Sign out button returns to landing and /events/ then redirects to sign-in"
-    why_human: "Real browser restart behaviour. Only the cookie Max-Age (7776000) is test-proven. The user's blanket 'approved' did not report it individually."
-  - test: "While signed in, trigger a redeploy (workflow_dispatch) and reload /events/"
-    expected: "Session survives (sessions live in ./data/db.sqlite3 on the bind mount)"
-    why_human: "Cannot SSH or trigger workflows from verification. Not individually reported by the user."
-  - test: "Open https://gifter.remesh.cz inside the real Messenger and Instagram in-app browsers (link shared in a chat/DM) on a phone"
-    expected: "The 'Open Gifter in your browser' hint shows instead of the Google button; menu wording (the ... menu, Open in browser) matches the real app; Copy link works; Continue anyway shows the Google button"
-    why_human: "Server-side detection is proven live with a spoofed FBAN/FBIOS user agent. Real in-app menu wording and the Copy link clipboard behaviour were never captured on a device."
-  - test: "Check the phone layout of the landing page and /events/"
+  - test: "Never-test-user sign-in (SC-2, AUTH-01), then confirm that account is bounced from /gifter-admin/ to /events/"
+    expected: "Signs in with no Google testing or blocked screen, greeted by name on /events/; /gifter-admin/ does not admit it"
+    why_human: "Depends on the Google Cloud Console publishing state and a real never-added Google account. This is the only evidence that closes the previous blocking gap. User declined to run it on 2026-11-08."
+  - test: "While signed in on desktop, reload /events/ (both deploys have already happened); then fully close and reopen the browser and open /events/; then Sign out and sign in again"
+    expected: "Session survives the redeploys and the browser restart with no new Google prompt; Sign out returns to the landing page and /events/ then redirects to sign-in"
+    why_human: "Real browser restart and cross-deploy session survival. Only cookie Max-Age 7776000 and POST-only logout are test-proven. Declined."
+  - test: "Open the landing page and /events/ on a phone, including the footer Privacy policy link"
     expected: "Readable and tappable at phone width"
-    why_human: "Visual check. Only reported under the blanket approval."
+    why_human: "Visual check. Declined."
+  - test: "Open https://gifter.remesh.cz inside the real Messenger and Instagram in-app browsers"
+    expected: "The 'Open Gifter in your browser' hint shows instead of the Google button; the menu wording in the copy ('Tap the ... menu', 'Open in browser', 'Open in Safari/Chrome') matches the real apps; Copy link works; Continue anyway shows the Google button"
+    why_human: "Server-side detection is proven live with a spoofed FBAN/FBIOS user agent, but the real apps' wording and clipboard behaviour were never captured on a device. Declined."
 ---
 
 # Phase 1: Google Sign-in Live Verification Report
 
 **Phase Goal:** Anyone with a Google account can sign in to Gifter at https://gifter.remesh.cz. The site runs on a cleaned-up Django 6.1 codebase that redeploys automatically from `main`.
-**Verified:** 2026-10-20
-**Status:** gaps_found
-**Re-verification:** No (initial verification)
+**Verified:** 2026-11-08
+**Status:** human_needed
+**Re-verification:** Yes, after gap closure plans 01-06, 01-07 and 01-08
 
-Note on mode: ROADMAP marks the phase `mode: mvp`, but the goal is not in user-story format (`user-story.validate` returns `valid: false`; the plans acknowledge this). Standard goal-backward verification was applied instead of the User Flow Coverage structure.
+Note on mode: ROADMAP marks the phase `mode: mvp`, but the goal is not in user-story format (acknowledged in the plans), so standard goal-backward verification was applied.
+
+## Result in one paragraph
+
+Everything that can be checked from the repository and from outside the Google Cloud Console passes. The previous blocking gap (no privacy page, so the consent screen could not be published) is closed on the code side: `/privacy/` is live, public, and linked from the footer. The user reports the consent screen is now Published, but that is a user statement about state this verification cannot observe, and the user declined the never-added-Google-account sign-in that would prove it. SC-2's "including a user never added as a test user" clause is therefore recorded as present-but-unproven (human item), not as passed and not as a code gap. No code gap remains.
 
 ## Goal Achievement
 
@@ -86,99 +97,106 @@ Note on mode: ROADMAP marks the phase `mode: mvp`, but the goal is not in user-s
 
 | # | Truth | Status | Evidence |
 |---|-------|--------|----------|
-| 1 | https://gifter.remesh.cz shows the Gifter landing page over HTTPS; every push to `main` redeploys (Actions to GHCR to Bombur) without losing `./data` | VERIFIED (persistence partly human) | Live `curl -sI`: HTTP/2 200, `via: Caddy`, `strict-transport-security: max-age=3600; includeSubDomains`. `http://` returns 308 to https. `gh run list`: push run 39452688350 and workflow_dispatch run 39452993438 both succeeded (test, build-and-push, deploy-production). Deployed SHA `b9b6a2d` equals `origin/main`; the two local-ahead commits are docs only. `compose.yaml` bind-mounts `./data:/app/data`; `settings.py` puts the DB at `DATA_DIR/db.sqlite3`. Survival of a live session across redeploy is a human item. |
-| 2 | A user can sign in with Google, **including a never-added test user**; Google is the only way in; `/login/` gone; stays signed in after browser restart; can sign out | **FAILED** (BLOCKER) | Google-only: PASS. Live `/login/` 404, `/admin/` 404, `/accounts/signup/` 404. `/accounts/login/` 302 to `/`. Live `POST /accounts/google/login/` redirects to accounts.google.com with `redirect_uri=https://gifter.remesh.cz/accounts/google/login/callback/` (smoke check g, real client id). Author signed in live (user-confirmed). Cookie Max-Age 7776000 is test-proven (`test_session_cookie_90_days`); sign-out is POST-only (`test_post_logout`, `test_get_logout_does_not_sign_out`). **But** the consent screen is in Testing, so a never-added Google account cannot sign in. Plan 01-05's own truth and check for this were not met (SUMMARY deviation 2, coverage D6). No later phase covers privacy page or publishing (grep of ROADMAP/REQUIREMENTS finds no match), so this cannot be deferred. |
-| 3 | A signed-out visitor opening any non-landing page is sent to sign in, then returned to that page | VERIFIED | `LoginRequiredMiddleware` + `LOGIN_URL="landing"`. Live: `/events/` returns 302 to `/?next=/events/`. Landing form carries hidden `next`. `test_google_round_trip_returns_to_next`, `test_offsite_next_rejected`, `test_protected_redirects_with_next`, `test_unresolvable_path_404` pass. |
-| 4 | Opening the site in the Messenger or Instagram in-app browser shows an "open in your browser" hint instead of a Google error | VERIFIED (server side); real-device wording is a human item | Live curl with UA `Mozilla/5.0 (iPhone) [FBAN/FBIOS;FBAV/400]` returns the hint ("Open Gifter in your browser", Copy link, Continue anyway) and no Google form. `gifter/inapp.py` regex plus 12 `test_inapp.py` tests pass. Menu wording not checked on a real device. |
-| 5 | Django 6.1 from a small pinned dependency set, `DEBUG` off, secrets from server `.env` incl. fresh `SECRET_KEY`, `check --deploy` passes in CI | VERIFIED | `uv.lock` pins Django 6.1.2; `pyproject.toml` has exactly 5 runtime deps; `requirements.txt` and `src/` are gone. `uv lock --locked` is clean. Local `check --deploy --fail-level WARNING` with DEBUG=0 exits 0. With no `SECRET_KEY`, `manage.py check` raises ImproperlyConfigured (fail-closed). CI runs the same gate (`deploy.yml` test job) and passed. Live `/login/` returns a plain 404, so DEBUG is off. `git grep django-insecure` outside `.planning` finds nothing. |
+| 1 | https://gifter.remesh.cz shows the landing page over HTTPS; every push to `main` redeploys without losing `./data` | VERIFIED (session survival across deploy is a human item) | Live `GET /` 200 via Caddy, HSTS `max-age=3600; includeSubDomains`. `gh run list`: push run 42508044579 and workflow_dispatch run 42508233756 on main both `success`. `compose.yaml` bind-mounts `./data`; DB lives in `DATA_DIR/db.sqlite3` (WAL). Live site serves `/privacy/` added in 01-06, so the deployed image contains the newest code. Deployed SHA 1a47ff0 equals origin/main; HEAD is 20be54e, docs only (`git diff 1a47ff0 HEAD` touches only .planning). |
+| 2 | A user can sign in with Google, **including a never-added test user**; Google is the only way in; `/login/` gone; stays signed in across browser restart; can sign out | **Code side VERIFIED; never-added-user clause PRESENT_BEHAVIOR_UNVERIFIED** | Google-only: live `/login/` 404, `/admin/` 404, `/accounts/signup/` 404, `/accounts/password/reset/` 404, `/accounts/google/login/token/` 404, `/accounts/3rdparty/` 404, `/accounts/inactive/` 404, `/accounts/login/` 302 to `/`. Live OAuth start redirects to accounts.google.com with `redirect_uri=https://gifter.remesh.cz/accounts/google/login/callback/` (smoke g). Author signed in live earlier (user-confirmed in 01-05). 90-day cookie and POST-only logout test-proven. Consent screen: user reports "published"; not observable by this verification; real never-added sign-in not run (user declined). See human_verification 1. |
+| 3 | A signed-out visitor opening any non-landing page is sent to sign in, then returned to that page | VERIFIED | Live `/events/` 302 to `/?next=/events/` (smoke c). `LoginRequiredMiddleware`, `LOGIN_URL="landing"`; round-trip and open-redirect tests pass in the 72-test suite. |
+| 4 | Messenger/Instagram in-app browser shows an "open in your browser" hint instead of a Google error | VERIFIED (server side); real-device wording is a human item | Spoofed-UA live check passed in the earlier verification; `gifter/inapp.py` and 14 `test_inapp.py` tests pass. Real app menu wording never captured. |
+| 5 | Django 6.1, small pinned deps, `DEBUG` off, secrets from server `.env`, `check --deploy` passes in CI | VERIFIED | `pyproject.toml`: exactly 5 runtime deps (Django>=6.1,<6.2, allauth, environ, gunicorn, whitenoise); `uv lock --locked` clean (19 packages). Settings fail closed without `SECRET_KEY` and Google credentials when DEBUG is off. `check --deploy --fail-level WARNING` with DEBUG=0 only flags W009 for the throwaway short key I supplied for the probe; CI test job runs the same gate and passed twice. Live `/login/` plain 404 confirms DEBUG off. |
 
-### Plan-level truths and prohibitions (spot confirmation)
+**Score:** 4/5 truths verified, 1 present but behavior-unverified (SC-2's never-added-user clause; the rest of SC-2 is verified, the unproven part is Google-side state).
+
+### Gap-closure plan truths (01-06, 01-07, 01-08)
 
 | Item | Status | Evidence |
 |------|--------|----------|
-| User model is `gifter.User`, first name from Google | VERIFIED | `AUTH_USER_MODEL="gifter.User"`; round-trip test passes |
-| SQLite WAL | VERIFIED | `init_command` sets `PRAGMA journal_mode=WAL` in `settings.py` |
-| Basic scopes only, PKCE, login-on-GET off | VERIFIED | `SCOPE=["openid","profile","email"]`, `SOCIALACCOUNT_LOGIN_ON_GET=False`. Live `GET /accounts/google/login/` returns 200 (confirm page), not a redirect to Google. |
-| No third-party assets | VERIFIED | `test_no_third_party_assets`; live HTML loads only `/static/...` |
-| Landing shows no user data to anonymous | VERIFIED | Live landing HTML contains only static copy; `test_landing_hides_user_data` |
-| Admin is Google-only and moved | VERIFIED | Live `/gifter-admin/` redirects to login, which goes to landing; `promote_staff` confirmed by user live |
-| Deploy via restricted bombur-deploy key, no host ports | VERIFIED | `deploy.yml` calls `ciakval/bombur-deploy/...@v1`; `compose.yaml` has no `ports:` and uses the external `proxy` network |
-| Full test suite | VERIFIED | `DEBUG=1 uv run python manage.py test`: Ran 41 tests, OK |
-| Live smoke script | VERIFIED | `scripts/smoke.sh https://gifter.remesh.cz`: checks a through g PASS, SMOKE OK |
-
-**Score:** 5/6 (5 ROADMAP success criteria plus the plan-level behaviors, counted as 6 groups; SC-2 fails on its "never-added user" clause)
+| `/privacy/` public, no personal data, only Phase 1 data described | VERIFIED | Live: 200 anonymous, no redirect. Page text lists stored Google data, cookies, EU server, deletion by email; says it will be updated before wishlists/events; no claims/chip-in/member mentions. 15 tests in `test_privacy.py` pass. |
+| Footer link to `/privacy/` on every page | VERIFIED | Live landing HTML contains `<a href="/privacy/">Privacy policy</a>`; smoke (i) passes. |
+| Contact comes only from `GIFTER_CONTACT_EMAIL`, no address in tracked files | VERIFIED | `git grep "@gmail"` outside `.planning` finds nothing; live page shows the configured contact. |
+| No Google tokens stored | VERIFIED | `SOCIALACCOUNT_STORE_TOKENS = False` in settings; pinned by mocked sign-in test. |
+| `deploy.yml`: `latest` only on main, SHA-pinned actions, `contents: read` | VERIFIED | `type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}`; all `docker/*`, `actions/*`, `astral-sh/*` uses are 40-hex SHAs with version comments; `permissions: contents: read` at workflow and job level. `secrets: inherit` and `@v1` on the bombur-deploy call remain (WR-02 recorded as partial/deferred). |
+| Accounts allowlist: only the 7 listed routes resolve, URL-table test | VERIFIED | `web/urls.py` allowlist with docstring; 27 tests in `test_lockdown.py`; live 404s listed above. |
+| Adapters prevent NoReverseMatch 500s and block connect | VERIFIED | `gifter/adapters.py` `respond_user_inactive`, `pre_social_login` (refuses `AuthProcess.CONNECT`), `get_connect_redirect_url`; wired via `ACCOUNT_ADAPTER` / `SOCIALACCOUNT_ADAPTER` in settings. |
+| Admin: no SocialApp/SocialToken, social accounts and emails read-only, Wish not registered | VERIFIED | `gifter/admin.py` unregisters SocialApp/SocialToken, read-only SocialAccount/EmailAddress admins (add/change denied, `actions = []`); no Wish registration. |
+| `promote_staff` trusts only Google-verified email with uid output | VERIFIED | Command requires verified `EmailAddress` row AND Google `SocialAccount.extra_data` email match with `email_verified`; refuses on none or ambiguous; prints uid. |
+| Smoke covers (h)-(k) live | VERIFIED | Re-run by me against production: PASS (a) through (k), `SMOKE OK`. |
+| Review dispositions recorded | VERIFIED | `01-REVIEW-DISPOSITION.md`: 15 findings, 0 open; WR-01/03/04/05 fixed, WR-02 partial-deferred with reason, others deferred with target phase. |
+| Plan 01-08 never-test-user sign-in, admin bounce, session survival, phone, in-app wording reported | NOT RUN (user declined) | Recorded as human verification items, never as pass. |
 
 ### Required Artifacts
 
 | Artifact | Status | Details |
 |----------|--------|---------|
-| `pyproject.toml`, `uv.lock` | VERIFIED | 5 deps, Django 6.1.2, lock reproducible |
-| `web/settings.py` | VERIFIED | Env-driven, fail-closed, production security block, WAL |
-| `web/urls.py` | VERIFIED | Login redirects placed before includes; admin at `gifter-admin/` |
-| `gifter/models.py`, migration 0001 | VERIFIED (WR-06 noted) | Custom user in place before first deploy |
-| `gifter/inapp.py`, `landing.html`, `landing.js` | VERIFIED | Wired in `views.landing`; live-confirmed |
-| `gifter/management/commands/promote_staff.py` | VERIFIED | Used live by the author |
-| `Dockerfile`, `compose.yaml`, `.env.example`, `deploy.yml`, `DEPLOYMENT.md`, `scripts/*smoke.sh` | VERIFIED | Pipeline ran green twice; image runs as uid 1000 |
-| `/privacy/` page | **MISSING** | Required to publish the consent screen (see gap) |
+| `gifter/templates/gifter/privacy.html`, `gifter/views.py` privacy view, `gifter/urls.py` route | VERIFIED | Exists, substantive, wired, live 200 |
+| `gifter/templates/gifter/base.html` footer | VERIFIED | Link present on live landing |
+| `gifter/adapters.py`, `gifter/admin.py`, `promote_staff.py`, `web/urls.py` | VERIFIED | Substantive and wired (settings + URL conf) |
+| `.github/workflows/deploy.yml`, `scripts/smoke.sh` | VERIFIED | Hardened; two green runs; smoke passes live |
+| `web/settings.py`, `pyproject.toml`, `uv.lock`, `Dockerfile`, `compose.yaml`, `.env.example`, `DEPLOYMENT.md` | VERIFIED | No regressions from the first verification |
 
 ### Key Link Verification
 
 | From | To | Status | Details |
 |------|----|--------|---------|
-| landing form | `/accounts/google/login/` | WIRED | POST with CSRF and `next` (live HTML) |
-| Google client | `https://gifter.remesh.cz/accounts/google/login/callback/` | WIRED | Live redirect_uri matches exactly |
+| landing form | `/accounts/google/login/` | WIRED | POST with CSRF and `next`; live OAuth start redirects to Google |
+| Google client | `https://gifter.remesh.cz/accounts/google/login/callback/` | WIRED | Live `redirect_uri` matches exactly |
+| landing footer | `/privacy/` | WIRED | Live HTML and smoke (i) |
 | `LoginRequiredMiddleware` | landing with `next` | WIRED | Live `/events/` 302 |
-| `deploy.yml` | Bombur via `bombur-deploy@v1` | WIRED | Two successful runs |
-| Caddy | `gifter-web:8000` | WIRED | Live responses carry `via: 1.1 Caddy` |
+| settings | `gifter.adapters.*` | WIRED | `ACCOUNT_ADAPTER`, `SOCIALACCOUNT_ADAPTER` |
+| `deploy.yml` | Bombur via `bombur-deploy@v1` | WIRED | Runs 42508044579 and 42508233756 succeeded |
 
-### Requirements Coverage
+### Data-Flow Trace (Level 4)
 
-| Requirement | Source Plan | Status | Evidence |
-|-------------|-------------|--------|----------|
-| OPS-01 Django 6.1, minimal pinned deps | 01-01, 01-04 | SATISFIED | uv.lock Django 6.1.2, 5 deps, no requirements.txt |
-| OPS-02 env-driven prod settings, rotated key, DEBUG off, hosts/CSRF origins | 01-01, 01-04 | SATISFIED | Fail-closed settings; `PUBLIC_HOSTS`; no committed key; check --deploy passes |
-| OPS-03 reachable at https://gifter.remesh.cz via Actions, GHCR, Compose, SQLite in ./data | 01-04, 01-05 | SATISFIED | Live site; green runs; bind mount. Cross-redeploy survival of data: see human item. |
-| OPS-04 in-app browser hint | 01-03, 01-05 | SATISFIED (server side) | Live spoofed-UA check; real-device wording human item |
-| AUTH-01 sign in with Google (only login method; `/login/` removed) | 01-01, 01-02, 01-05 | PARTIAL | Works for listed test users; not for arbitrary Google accounts while in Testing. The requirement text itself does not say "any account", but the phase goal and SC-2 do. REQUIREMENTS.md already marks it Complete; consider reopening it or keeping the gap on the phase. |
-| AUTH-02 stays signed in across sessions; can sign out | 01-01, 01-05 | SATISFIED (code); real-browser restart is a human item | Cookie Max-Age 7776000; POST logout tested |
-| AUTH-03 every page except landing requires sign-in | 01-01, 01-05 | SATISFIED | Live and test-proven |
-
-All 7 phase IDs (OPS-01..04, AUTH-01..03) appear in plan frontmatter and in REQUIREMENTS.md. No orphaned requirements: REQUIREMENTS.md maps only these IDs to Phase 1.
-
-### Review Warnings vs Must-Haves
-
-The review (0 critical, 7 warnings) was checked against the must-haves.
-
-- WR-03 (undermines "Google is the only door" in spirit, but not a must-have failure): live `/accounts/google/login/token/` answers 401 (routed, CSRF-exempt One Tap endpoint). `/accounts/3rdparty/` is reachable when signed in. Neither provides a non-Google way to sign in, because a Google-signed ID token for this client is still required. Not a gap against SC-2 (the SC only requires that no password or other login method exists), but hardening is recommended before relatives are invited.
-- WR-01/WR-02 (CI hygiene), WR-04 (SocialApp in admin), WR-05 (`promote_staff` trusts unverified email), WR-06 (`Wish.claimed_by` conflicts with secrecy design, Phase 3 concern), WR-07 (`<html lang>` always en; Phase 4 concern): none contradict a Phase 1 must-have. All are open in `01-REVIEW-DISPOSITION.md`. WR-06 should be resolved at the start of Phase 2/3 rather than left.
-
-### Anti-Patterns Found
-
-| File | Pattern | Severity | Impact |
-|------|---------|----------|--------|
-| (phase files) | TBD/FIXME/XXX debt markers | none found in the phase's implementation files scanned | No debt-marker blocker |
-| `gifter/models.py` | `Wish.claimed_by` on the giftee-readable row (WR-06) | Warning | Phase 2/3 secrecy design conflict, not Phase 1 |
+Landing and privacy pages render static copy plus settings constants (contact email, policy date); no dynamic user data. Live privacy page shows the configured contact, confirming the setting reaches the template.
 
 ### Behavioral Spot-Checks
 
 | Behavior | Command | Result | Status |
 |----------|---------|--------|--------|
-| Test suite | `DEBUG=1 uv run python manage.py test` | 41 tests OK | PASS |
-| Deploy audit | `check --deploy --fail-level WARNING` (DEBUG=0) | exit 0 | PASS |
-| Fail-closed secret | `manage.py check` without SECRET_KEY | ImproperlyConfigured | PASS |
+| Test suite | `DEBUG=1 uv run python manage.py test` | Ran 72 tests, OK | PASS |
+| Live contract | `bash scripts/smoke.sh https://gifter.remesh.cz` | PASS (a)-(k), SMOKE OK | PASS |
+| Live route table | curl of `/ /privacy/ /events/ /login/ /admin/ /accounts/{login,signup,google/login/token,3rdparty,inactive,password/reset}/` | 200, 200, 302-to-next, 404, 404, 302, 404, 404, 404, 404, 404 | PASS |
 | Lock reproducible | `uv lock --locked` | Resolved 19 packages | PASS |
-| Live contract | `scripts/smoke.sh https://gifter.remesh.cz` | SMOKE OK (a-g) | PASS |
-| In-app hint live | `curl -A "...FBAN/FBIOS..."` | Hint shown | PASS |
+| Deploy audit | `check --deploy --fail-level WARNING` (DEBUG=0, placeholder env) | Only W009 for my deliberately short probe key | PASS |
+
+### Probe Execution
+
+No `probe-*.sh` scripts declared by the phase. Skipped.
+
+### Requirements Coverage
+
+| Requirement | Source Plans | Status | Evidence |
+|-------------|--------------|--------|----------|
+| OPS-01 Django 6.1, minimal pinned deps | 01-01, 01-04 | SATISFIED | uv.lock Django 6.1.x, 5 runtime deps |
+| OPS-02 env-driven prod settings, rotated key, DEBUG off, hosts/CSRF origins | 01-01, 01-04, 01-06 | SATISFIED | Fail-closed settings; contact via env; no committed secret |
+| OPS-03 reachable at gifter.remesh.cz via Actions, GHCR, Compose, SQLite in ./data | 01-04, 01-05, 01-06, 01-08 | SATISFIED | Live; two green runs this round; hardened workflow. Data survival across a redeploy with a live session is a human item. |
+| OPS-04 in-app browser hint | 01-03, 01-05 | SATISFIED (server side) | Real-device wording is a human item |
+| AUTH-01 sign in with Google (only method, `/login/` removed) | 01-01, 01-02, 01-05, 01-06, 01-07 | SATISFIED (code); never-added-account proof is a human item | Google-only enforced by URL allowlist and live 404s; consent screen reported published |
+| AUTH-02 stays signed in, can sign out | 01-01, 01-05 | SATISFIED (code); real-browser restart is a human item | 90-day cookie, POST logout tests |
+| AUTH-03 every page except landing requires sign-in | 01-01, 01-05 | SATISFIED | Live and test-proven. `/privacy/` is a deliberate public page, consistent with the landing exception and Google's Branding requirement. |
+
+All 7 phase IDs (OPS-01..04, AUTH-01..03) appear in plan frontmatter and in REQUIREMENTS.md as Phase 1 / Complete. No orphaned requirements: REQUIREMENTS.md maps only these IDs to Phase 1 (OPS-05/06 are Phase 4).
+
+### Anti-Patterns Found
+
+| File | Line | Pattern | Severity | Impact |
+|------|------|---------|----------|--------|
+| (phase files) | - | TBD/FIXME/XXX grep over `gifter web scripts Dockerfile compose.yaml .github DEPLOYMENT.md` | none found | No debt-marker blocker |
+| `.github/workflows/deploy.yml` | 118 | `bombur-deploy@v1` mutable ref with `secrets: inherit` | Warning (known, WR-02 partial) | Supply-chain hygiene; recorded in disposition with follow-up in bombur-deploy |
+| `gifter/models.py` | - | `Wish.claimed_by` on giftee-readable row (WR-06) | Warning | Deferred to Phase 2 per disposition; not a Phase 1 must-have |
 
 ### Human Verification Required
 
-See the `human_verification` frontmatter: browser-restart persistence and sign-out, session survival across a redeploy, real Messenger/Instagram menu wording and Copy link, phone layout. These were covered only by the user's blanket "approved".
+These are verification items the user declined on 2026-11-08 ("I want the app to start being usable asap"). They are open, not passed, and not code gaps.
+
+1. **Never-test-user Google sign-in and admin bounce** (SC-2, AUTH-01). Test: sign in from a Google account never added as a test user. Expected: no Google "testing" or "Access blocked" screen; greeted by name on `/events/`; `/gifter-admin/` does not admit it. Why human: Google Cloud Console state is not observable here; the user's "published" report is unconfirmed. This is the one item that proves the phase goal's "anyone with a Google account" clause.
+2. **Session persistence** (AUTH-02, SC-1). Test: reload `/events/` on a desktop session that predates the deploys; fully restart the browser; sign out; sign in again. Expected: session survives deploys and restart; sign-out returns to landing.
+3. **Phone layout** of landing, `/events/`, footer link. Expected: readable and tappable.
+4. **Real Messenger and Instagram in-app hint** (SC-4, OPS-04). Expected: hint shows, menu wording in the copy matches the real apps, Copy link works, Continue anyway shows the Google button.
 
 ### Gaps Summary
 
-One blocking gap. The phase goal says anyone with a Google account can sign in, and ROADMAP SC-2 explicitly includes a user never added as a test user. The Google consent screen is still in Testing, so that is false today. The root cause is a missing privacy policy page that Google's Branding step requires before the app can be published. Closing it needs a small code change (a `/privacy/` page linked from the footer, then deployed), then a user-only action in Google Cloud Console (fill Branding, Publish app to In production), then a re-test with a never-added Google account. Everything else in the phase (Django 6.1 cleanup, env-driven settings, auto-deploy, lockdown, in-app hint, default-deny auth) is present, wired and exercised live. Suggested next step: `/gsd-plan-phase 1 --gaps`.
+No code gaps. The previous blocking gap's code cause (missing privacy page and footer link) is fixed and live; the Google-console half is user-operated and user-reported as done. Practical risk to flag: if the consent screen is not actually published, any relative who is not a listed test user will hit Google's testing wall; the first real relative sign-in (or check 1 above) will reveal it immediately and fixing it needs no code change. Also keep the privacy page in step with features: update it and bump `PRIVACY_POLICY_UPDATED` before Phase 2 ships wishlists, events and members.
 
 ---
 
-_Verified: 2026-10-20_
+_Verified: 2026-11-08_
 _Verifier: Claude (gsd-verifier)_
