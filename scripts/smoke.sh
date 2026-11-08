@@ -122,4 +122,15 @@ pass "(h) GET /privacy/ is 200 anonymously and carries the policy"
 grep -q 'href="/privacy/"' "$TMP/a.body" || fail '(i) landing page lacks href="/privacy/"'
 pass "(i) landing page links to /privacy/"
 
+# (j) the One Tap token endpoint (CSRF-exempt, a second way in) is not routed
+code="$(curl -sS -o "$TMP/j.body" -D "$TMP/j.head" -w '%{http_code}' "${PROXY_HEADERS[@]}" \
+  -X POST --data '' "$BASE/accounts/google/login/token/")"
+[ "$code" = "404" ] || fail "(j) POST /accounts/google/login/token/ returned $code, expected 404"
+pass "(j) POST /accounts/google/login/token/ is 404"
+
+# (k) the connected-accounts page is not routed
+code="$(get "$TMP/k.head" "$TMP/k.body" /accounts/3rdparty/)"
+[ "$code" = "404" ] || fail "(k) GET /accounts/3rdparty/ returned $code, expected 404"
+pass "(k) GET /accounts/3rdparty/ is 404"
+
 echo "SMOKE OK"
