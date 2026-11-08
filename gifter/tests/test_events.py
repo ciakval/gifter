@@ -14,6 +14,7 @@ from django.test import TestCase
 from django.utils import timezone
 
 from gifter.models import Event, Membership
+from gifter.tests.test_auth import GoogleRoundTripMixin
 
 User = get_user_model()
 
@@ -239,3 +240,155 @@ class EventDetailTests(TestCase):
         response = self.client.get(f"/events/{self.event.pk}/")
         self.assertContains(response, "Unnamed member")
         self.assertNotContains(response, "jan.novak")
+
+
+class InviteTests(TestCase):
+    def setUp(self):
+        self.creator = make_user("jan.novak", email="jan.novak@example.com")
+        self.event = make_event(self.creator, "Wedding of Eva", datetime.date(2027, 6, 1))
+        self.token = self.event.invite_token
+        self.url = f"/invite/{self.token}/"
+        self.visitor = make_user("vera", first_name="Vera")
+
+    def test_anonymous_get_redirects_and_joins_nobody(self):
+        before = Membership.objects.count()
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response["Location"], f"/?next={self.url}")
+        self.assertEqual(self.client.session["pending_invite"], self.token)
+        self.assertEqual(Membership.objects.count(), before)
+        self.assertNotContains(response, "Wedding of Eva", status_code=302)
+
+    def test_link_preview_bots_join_nobody_and_see_nothing(self):
+        before = Membership.objects.count()
+        for agent in ("facebookexternalhit/1.1", "WhatsApp/2.23.20.0", "Twitterbot/1.0"):
+            response = self.client.get(self.url, HTTP_USER_AGENT=agent)
+            self.assertEqual(response.status_code, 302)
+            self.assertEqual(response["Location"], f"/?next={self.url}")
+            self.assertNotContains(response, "Wedding of Eva", status_code=302)
+            self.assertNotContains(response, "jan.novak", status_code=302)
+        self.assertEqual(Membership.objects.count(), before)
+
+    def test_anonymous_unknown_token_looks_identical(self):
+        response = self.client.get("/invite/smoke-not-a-token/")
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response["Location"], "/?next=/invite/smoke-not-a-token/")
+
+    def test_anonymous_post_does_not_join(self):
+        before = Membership.objects.count()
+        response = self.client.post(self.url)
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(response["Location"].startswith("/?next="))
+        self.assertEqual(Membership.objects.count(), before)
+
+    def test_signed_in_get_shows_confirm_page_without_joining(self):
+        self.client.force_login(self.visitor)
+        before = Membership.objects.count()
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Wedding of Eva")
+        self.assertContains(response, "Unnamed member")
+        self.assertContains(response, "1 member")
+        html = response.content.decode()
+        self.assertRegex(html, r'<form[^>]*method="post"')
+        self.assertContains(response, "Join")
+        self.assertNotContains(response, "jan.novak")
+        self.assertEqual(Membership.objects.count(), before)
+
+    def test_post_joins_once_and_is_idempotent(self):
+        self.client.force_login(self.visitor)
+        first = self.client.post(self.url)
+        self.assertEqual(first.status_code, 302)
+        self.assertEqual(first["Location"], f"/events/{self.event.pk}/?joined=1")
+        self.assertEqual(Membership.objects.filter(event=self.event, user=self.visitor).count(), 1)
+        second = self.client.post(self.url)
+        self.assertEqual(second.status_code, 302)
+        self.assertEqual(second["Location"], f"/events/{self.event.pk}/?joined=1")
+        self.assertEqual(Membership.objects.filter(event=self.event, user=self.visitor).count(), 1)
+
+    def test_member_sees_already_in_without_join_form(self):
+        join(self.event, self.visitor)
+        self.client.force_login(self.visitor)
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "already in this event")
+        self.assertContains(response, f'href="/events/{self.event.pk}/"')
+        self.assertNotRegex(response.content.decode(), r'<form[^>]*method="post"[^>]*>\s*<input[^>]*csrf')
+
+    def test_signed_in_unknown_token_404(self):
+        self.client.force_login(self.visitor)
+        self.assertEqual(self.client.get("/invite/nope-nope/").status_code, 404)
+        self.assertEqual(self.client.post("/invite/nope-nope/").status_code, 404)
+
+    def test_every_member_sees_the_invite_link(self):
+        join(self.event, self.visitor)
+        expected = f"http://testserver/invite/{self.token}/"
+        for user in (self.creator, self.visitor):
+            self.client.force_login(user)
+            response = self.client.get(f"/events/{self.event.pk}/")
+            self.assertContains(response, f'data-copy-url="{expected}"')
+            self.assertRegex(
+                response.content.decode(),
+                r'<input[^>]*id="copy-url"[^>]*value="' + expected + '"',
+            )
+
+
+class InviteRoundTripTests(GoogleRoundTripMixin, TestCase):
+    def setUp(self):
+        self.creator = make_user("carl", first_name="Carl")
+        self.event = make_event(self.creator, "Round trip party")
+        self.url = f"/invite/{self.event.invite_token}/"
+
+    def test_round_trip_lands_on_confirm_page(self):
+        anonymous = self.client.get(self.url)
+        self.assertEqual(anonymous.status_code, 302)
+        callback = self.sign_in(self.url)
+        self.assertEqual(callback.status_code, 302)
+        self.assertEqual(callback["Location"], self.url)
+        page = self.client.get(self.url)
+        self.assertContains(page, "Round trip party")
+        self.assertEqual(Membership.objects.count(), 1)
+
+    def test_session_fallback_forwards_once_when_next_is_lost(self):
+        self.client.get(self.url)
+        callback = self.sign_in(None)
+        self.assertEqual(callback["Location"], "/events/")
+        first = self.client.get("/events/")
+        self.assertEqual(first.status_code, 302)
+        self.assertEqual(first["Location"], self.url)
+        second = self.client.get("/events/")
+        self.assertEqual(second.status_code, 200)
+        self.assertEqual(Membership.objects.count(), 1)
+
+    def test_fallback_ignored_for_existing_member(self):
+        self.client.get(self.url)
+        self.sign_in(None)
+        from django.contrib.auth import get_user_model
+
+        join(self.event, get_user_model().objects.get(first_name="Anna"))
+        self.assertEqual(self.client.get("/events/").status_code, 200)
+
+    def test_fallback_ignored_for_unknown_token(self):
+        self.client.get("/invite/not-a-real-token/")
+        self.sign_in(None)
+        self.assertEqual(self.client.get("/events/").status_code, 200)
+
+
+class LandingNextTests(TestCase):
+    def setUp(self):
+        self.client.force_login(make_user("anna", first_name="Anna"))
+
+    def test_safe_next_is_followed(self):
+        response = self.client.get("/", {"next": "/invite/abc123/"})
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response["Location"], "/invite/abc123/")
+
+    def test_offsite_next_goes_home(self):
+        for target in ("https://evil.example/", "//evil.example/"):
+            response = self.client.get("/", {"next": target})
+            self.assertEqual(response.status_code, 302)
+            self.assertEqual(response["Location"], "/events/")
+
+    def test_plain_landing_goes_home(self):
+        response = self.client.get("/")
+        self.assertEqual(response["Location"], "/events/")

@@ -27,6 +27,8 @@ REQUIRED_PHRASES = [
     "never sells or shares your data",
     "no advertising and no analytics",
     "European Union",
+    "invite link",
+    "names of the other members",
 ]
 
 
@@ -73,7 +75,7 @@ class PrivacyPageTests(TestCase):
 
     def test_does_not_describe_unbuilt_features(self):
         html = self.client.get(PRIVACY_URL).content.decode().lower()
-        for word in ("claim", "chip", "member"):
+        for word in ("claim", "chip"):
             self.assertNotIn(word, html)
 
 
