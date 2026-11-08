@@ -3,16 +3,16 @@ gsd_state_version: "1.0"
 current_phase: 01
 current_phase_name: Google Sign-in Live
 status: executing
-stopped_at: Completed 01-05-PLAN.md
-last_updated: "2026-10-28T15:28:23.044Z"
-last_activity: 2026-10-18
+stopped_at: Completed 01-06-PLAN.md
+last_updated: "2026-11-08T17:43:36.922Z"
+last_activity: 2026-11-08
 last_activity_desc: Phase 01 execution started
-state_head: dafe4023cb7b591eafbc72e6f2b41fae95bdcb7e
+state_head: 3b4290ce65ca508d1d5b7171a806dbc03e4b89d3
 progress:
   total_phases: 4
   completed_phases: 0
   total_plans: 8
-  completed_plans: 5
+  completed_plans: 6
   percent: 0
 ---
 
@@ -27,10 +27,10 @@ See: .planning/PROJECT.md (updated 2026-10-16)
 
 ## Current Position
 
-Phase: 01 (Google Sign-in Live) — READY TO EXECUTE
-Plan: 5 of 5
+Phase: 01 (Google Sign-in Live) — EXECUTING
+Plan: 7 of 8
 Status: Ready to execute
-Last activity: 2026-10-18 — Phase 01 execution started
+Last activity: 2026-11-08 — Phase 01 execution started
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -61,6 +61,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 01 P03 | 4 min | 2 tasks | 5 files |
 | Phase 01 P04 | 15 min | 2 tasks | 10 files |
 | Phase 01 P05 | multi-session | 3 tasks | 3 files |
+| Phase 01 P06 | 3 min | 3 tasks | 10 files |
 
 ## Accumulated Context
 
@@ -82,6 +83,8 @@ Recent decisions affecting current work:
 - [Phase 01]: 01-04: Third-party appleboy actions pinned to full commit SHAs (scp-action v1.0.0, ssh-action v1.2.5); DEPLOY_DIR defaults to /home/plachtis/DOCKER/gifter pending 01-05 confirmation
 - [Phase 01]: 01-05: Google consent screen left in Testing until a /privacy/ page exists; publish before relatives get invites
 - [Phase 01]: 01-05: ciakval/gifter made public (GitHub Free has no branch protection on private repos; production env needs protected main); history scanned clean
+- [Phase 01]: 01-06: keep secrets: inherit and @v1 on the bombur-deploy call (v1 declares no workflow_call secrets; ciakval is sole collaborator); follow-up: declare DEPLOY_SSH_KEY in bombur-deploy then map explicitly
+- [Phase 01]: 01-06: /privacy/ must be updated (and PRIVACY_POLICY_UPDATED bumped) before wishlists/events/members (Phase 2), claims/chip-ins (Phase 3), backups/language cookie (Phase 4) ship
 
 ### Pending Todos
 
@@ -107,6 +110,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-20T16:03:31.289Z
-Stopped at: Completed 01-05-PLAN.md
+Last session: 2026-11-08T17:43:36.896Z
+Stopped at: Completed 01-06-PLAN.md
 Resume file: None

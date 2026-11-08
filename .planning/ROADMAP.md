@@ -44,7 +44,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   4. Opening the site inside the Messenger or Instagram in-app browser shows an "open in your browser" hint instead of a Google sign-in error.
   5. Production runs Django 6.1 from a small pinned dependency set, with `DEBUG` off. All secrets, including a fresh `SECRET_KEY`, are read from the server's `.env`, and `manage.py check --deploy` passes in CI.
 
-**Plans:** 8 plans (5 executed; 3 gap-closure plans pending)
+**Plans:** 6/8 plans executed (5 executed; 3 gap-closure plans pending)
 
 Plans:
 **Wave 1**
@@ -59,7 +59,7 @@ Plans:
 - [x] 01-05-PLAN.md — Go live: user's one-time setup, first deploy, live smoke + persistence proof, real-device/real-account checks
 
 **Gap closure** *(from 01-VERIFICATION.md and 01-REVIEW.md; run with `/gsd-execute-phase 1 --gaps-only`)*
-- [ ] 01-06-PLAN.md — Public /privacy/ page linked from every page's footer (Google Branding prerequisite), GIFTER_CONTACT_EMAIL setting, deploy.yml hardening (WR-01 latest only on main, WR-02 SHA pins and permissions)
+- [x] 01-06-PLAN.md — Public /privacy/ page linked from every page's footer (Google Branding prerequisite), GIFTER_CONTACT_EMAIL setting, deploy.yml hardening (WR-01 latest only on main, WR-02 SHA pins and permissions)
 - [ ] 01-07-PLAN.md — Google-only door enforced: explicit allauth URL allowlist with adapters (WR-03), read-only Google identity admin (WR-04), promote_staff via Google-verified email with uid (WR-05), review dispositions recorded *(after 01-06)*
 - [ ] 01-08-PLAN.md — Deploy and prove live, user publishes the consent screen (Branding + In production), never-added Google account signs in, human checks reported one by one *(after 01-07; has checkpoints)*
 
@@ -123,7 +123,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Google Sign-in Live | 5/5 | In Progress | - |
+| 1. Google Sign-in Live | 6/8 | In Progress | - |
 | 2. Events, Wishlists & Browsing | 0/TBD | Not started | - |
 | 3. Secret Claims & Gift Lifecycle | 0/TBD | Not started | - |
 | 4. Family Launch | 0/TBD | Not started | - |
