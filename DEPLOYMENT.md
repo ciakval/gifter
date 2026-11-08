@@ -57,18 +57,28 @@ accepts protected branches.
 1. Create a fresh project named "Gifter" (publishing is per project; do not reuse another app's).
 2. OAuth consent screen (now called Google Auth Platform): user type **External**, app name
    and support email, scopes **only** `openid`, `email`, `profile`.
-3. **Publish app** so the publishing status reads **In production**. In Testing mode only
-   listed test users (max 100) can sign in; relatives would be locked out. With basic scopes
-   only, publishing needs no Google verification.
-4. Create an OAuth client of type **Web application** (production) with the authorized
+3. **Branding** (Google Auth Platform -> Branding). The privacy page must already be live
+   (deploy first), because Google checks that the link works. Fill in:
+   - App name: `Gifter`
+   - User support email: keep yours
+   - App logo: leave **empty** (uploading a logo starts Google's brand verification)
+   - Application home page: `https://gifter.remesh.cz`
+   - Application privacy policy link: `https://gifter.remesh.cz/privacy/`
+   - Application terms of service link: leave empty
+   - Authorized domain: `remesh.cz`
+   - Developer contact email: yours
+4. **Publish app** (Audience -> Publish app) so the publishing status reads **In production**.
+   In Testing mode only listed test users (max 100) can sign in; relatives would be locked
+   out. With basic scopes only and no logo, publishing needs no Google verification.
+5. Create an OAuth client of type **Web application** (production) with the authorized
    redirect URI exactly:
 
    `https://gifter.remesh.cz/accounts/google/login/callback/`
 
    (https, trailing slash; JavaScript origins are not needed).
-5. Create a second Web application client for local development with the redirect URI
+6. Create a second Web application client for local development with the redirect URI
    `http://127.0.0.1:8000/accounts/google/login/callback/`.
-6. The production client id and secret go into the server `.env` (step 4 below); the dev
+7. The production client id and secret go into the server `.env` (step 4 below); the dev
    pair goes into your local `.env`.
 
 ### 3. Onboard the app on Bombur
@@ -104,6 +114,10 @@ ssh -p 10022 ciakval@bombur.remesh.cz sudo -u deploy nano /home/deploy/DOCKER/gi
 
 Type `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` there (never into chat, the repo or
 GitHub). The app refuses to start while they are empty.
+
+Optionally add `GIFTER_CONTACT_EMAIL=you@example.org` there too. `/privacy/` then shows it as
+the address for data requests (viewing or deleting someone's data). While it is empty, the
+page tells people to ask whoever invited them. Never put the address in the repo.
 
 ### 5. First deploy
 
@@ -165,6 +179,11 @@ Revoke CI's deploy access: delete the `gh-gifter` line in `/home/deploy/.ssh/aut
 - **Never add a "Social application" row in the Django admin.** The Google credentials come
   from settings (environment); having a database row as well breaks sign-in.
 - Rotating `SECRET_KEY` signs everyone out.
+- `/privacy/` must stay public and truthful. It describes only what Gifter stores today
+  (Google sign-in data and sign-in times). Update `privacy.html` and `PRIVACY_POLICY_UPDATED`
+  BEFORE shipping a feature that stores or shows new kinds of data: wishlists, events and
+  member lists (Phase 2), claims and chip-ins (Phase 3), backups and the language cookie
+  (Phase 4).
 - HSTS starts at 3600 s (`SECURE_HSTS_SECONDS`); raise it after a week of working HTTPS.
 - Backups of `./data` are planned for Phase 4. Until then, copy all three SQLite files
   (`db.sqlite3`, `-wal`, `-shm`) together, or use `sqlite3 db.sqlite3 ".backup copy.sqlite3"`.
