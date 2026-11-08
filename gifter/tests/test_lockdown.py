@@ -8,13 +8,15 @@ from io import StringIO
 from unittest import mock
 from urllib.parse import parse_qs, unquote, urlparse
 
+from django.contrib import admin
 from django.contrib.auth import get_user_model
 from django.core.management import call_command
 from django.core.management.base import CommandError
 from django.test import TestCase
 from django.urls import URLPattern, URLResolver, get_resolver
 
-from allauth.socialaccount.models import SocialAccount
+from allauth.account.models import EmailAddress
+from allauth.socialaccount.models import SocialAccount, SocialApp, SocialToken
 from allauth.socialaccount.providers.google.views import GoogleOAuth2Adapter
 from allauth.socialaccount.providers.oauth2.client import OAuth2Client
 
@@ -24,6 +26,7 @@ from gifter.tests.test_auth import (
     GoogleRoundTripMixin,
     fake_get_access_token,
 )
+from gifter.models import Wish
 
 
 def make_user(username, email="", **extra):
@@ -89,17 +92,128 @@ class LogoutTests(TestCase):
         self.assertNotIn("_auth_user_id", self.client.session)
 
 
+def make_google_user(username, email, uid, verified=True):
+    """A user as Google sign-in creates one: unusable password, primary email, Google account."""
+    user = make_user(username, email)
+    EmailAddress.objects.create(user=user, email=email, primary=True, verified=verified)
+    SocialAccount.objects.create(
+        user=user,
+        provider="google",
+        uid=uid,
+        extra_data={"email": email, "email_verified": verified, "sub": uid},
+    )
+    return user
+
+
 class PromoteStaffTests(TestCase):
-    def test_promotes_case_insensitively(self):
-        user = make_user("anna", "anna@example.com")
-        call_command("promote_staff", "ANNA@example.com", stdout=StringIO())
+    def run_command(self, email):
+        out = StringIO()
+        call_command("promote_staff", email, stdout=out)
+        return out.getvalue()
+
+    def assert_nobody_promoted(self):
+        self.assertFalse(get_user_model().objects.filter(is_staff=True).exists())
+        self.assertFalse(get_user_model().objects.filter(is_superuser=True).exists())
+
+    def test_promotes_verified_google_email_case_insensitively_and_prints_uid(self):
+        user = make_google_user("anna", "anna@example.com", "1234567890")
+        output = self.run_command("ANNA@example.com")
         user.refresh_from_db()
         self.assertTrue(user.is_staff)
         self.assertTrue(user.is_superuser)
+        self.assertIn("Google uid 1234567890", output)
 
     def test_unknown_email_fails(self):
+        make_google_user("anna", "anna@example.com", "1")
         with self.assertRaises(CommandError):
-            call_command("promote_staff", "nobody@example.invalid", stdout=StringIO())
+            self.run_command("nobody@example.invalid")
+        self.assert_nobody_promoted()
+
+    def test_user_email_without_google_account_is_refused(self):
+        make_user("anna", "anna@example.com")
+        with self.assertRaises(CommandError):
+            self.run_command("anna@example.com")
+        self.assert_nobody_promoted()
+
+    def test_unverified_google_email_is_refused(self):
+        make_google_user("anna", "anna@example.com", "1", verified=False)
+        with self.assertRaises(CommandError):
+            self.run_command("anna@example.com")
+        self.assert_nobody_promoted()
+
+    def test_two_verified_google_accounts_with_same_email_are_refused(self):
+        make_google_user("anna", "anna@example.com", "1")
+        make_google_user("anna2", "ANNA@example.com", "2")
+        with self.assertRaises(CommandError) as ctx:
+            self.run_command("anna@example.com")
+        self.assertIn("Nobody was promoted.", str(ctx.exception))
+        self.assert_nobody_promoted()
+
+    def test_user_with_two_google_accounts_is_refused(self):
+        user = make_google_user("anna", "anna@example.com", "1")
+        SocialAccount.objects.create(
+            user=user,
+            provider="google",
+            uid="2",
+            extra_data={"email": "anna@example.com", "email_verified": True},
+        )
+        with self.assertRaises(CommandError):
+            self.run_command("anna@example.com")
+        self.assert_nobody_promoted()
+
+
+class AdminLockdownTests(TestCase):
+    def setUp(self):
+        self.boss = make_user("boss", "boss@example.com", is_staff=True, is_superuser=True)
+        self.client.force_login(self.boss)
+
+    def test_social_app_and_token_pages_are_404(self):
+        for path in (
+            "/gifter-admin/socialaccount/socialapp/",
+            "/gifter-admin/socialaccount/socialapp/add/",
+            "/gifter-admin/socialaccount/socialtoken/",
+        ):
+            with self.subTest(path=path):
+                self.assertEqual(self.client.get(path).status_code, 404)
+
+    def test_social_account_and_email_address_are_view_only(self):
+        make_google_user("anna", "anna@example.com", "1234567890")
+        for path in (
+            "/gifter-admin/socialaccount/socialaccount/",
+            "/gifter-admin/account/emailaddress/",
+        ):
+            with self.subTest(path=path):
+                self.assertEqual(self.client.get(path).status_code, 200)
+        self.assertNotContains(self.client.get("/gifter-admin/account/emailaddress/"), "make_verified")
+        for path in (
+            "/gifter-admin/socialaccount/socialaccount/add/",
+            "/gifter-admin/account/emailaddress/add/",
+        ):
+            with self.subTest(path=path):
+                self.assertEqual(self.client.get(path).status_code, 403)
+
+    def test_social_account_change_page_has_no_save_button(self):
+        make_google_user("anna", "anna@example.com", "1234567890")
+        account = SocialAccount.objects.get()
+        page = self.client.get(f"/gifter-admin/socialaccount/socialaccount/{account.pk}/change/")
+        self.assertEqual(page.status_code, 200)
+        self.assertNotContains(page, 'name="_save"')
+
+    def test_deleting_a_user_with_google_account_still_works(self):
+        anna = make_google_user("anna", "anna@example.com", "1234567890")
+        url = f"/gifter-admin/gifter/user/{anna.pk}/delete/"
+        confirm = self.client.get(url)
+        self.assertEqual(confirm.status_code, 200)
+        self.assertNotContains(confirm, "permission to delete")
+        self.client.post(url, {"post": "yes"})
+        self.assertFalse(get_user_model().objects.filter(pk=anna.pk).exists())
+        self.assertEqual(SocialAccount.objects.count(), 0)
+        self.assertEqual(EmailAddress.objects.count(), 0)
+
+    def test_dangerous_and_secret_models_are_not_registered(self):
+        for model in (SocialApp, SocialToken, Wish):
+            with self.subTest(model=model.__name__):
+                self.assertFalse(admin.site.is_registered(model))
 
 
 ALLOWED_ACCOUNTS_ROUTES = {
