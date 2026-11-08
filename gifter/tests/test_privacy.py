@@ -14,6 +14,7 @@ from django.test import TestCase, override_settings
 from allauth.socialaccount.models import SocialToken
 
 from gifter.tests.test_auth import GoogleRoundTripMixin
+from gifter.tests.test_inapp import MESSENGER_IOS
 
 PRIVACY_URL = "/privacy/"
 
@@ -84,3 +85,32 @@ class NoStoredTokensTests(GoogleRoundTripMixin, TestCase):
         response = self.sign_in("/events/")
         self.assertEqual(response.status_code, 302)
         self.assertEqual(SocialToken.objects.count(), 0)
+
+
+class FooterLinkTests(TestCase):
+    """Every page extending gifter/base.html links to the policy (Google's app home page is /)."""
+
+    def assertLinksToPrivacy(self, response):
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'href="/privacy/"')
+
+    def test_landing_links_to_privacy(self):
+        self.assertLinksToPrivacy(self.client.get("/"))
+
+    def test_in_app_landing_links_to_privacy(self):
+        response = self.client.get("/", HTTP_USER_AGENT=MESSENGER_IOS)
+        self.assertContains(response, "Copy link")  # the in-app hint variant is rendered
+        self.assertLinksToPrivacy(response)
+
+    def test_home_links_to_privacy(self):
+        user = get_user_model().objects.create(username="anna", first_name="Anna")
+        self.client.force_login(user)
+        self.assertLinksToPrivacy(self.client.get("/events/"))
+
+    def test_allauth_page_links_to_privacy(self):
+        user = get_user_model().objects.create(username="anna", first_name="Anna")
+        self.client.force_login(user)
+        self.assertLinksToPrivacy(self.client.get("/accounts/logout/"))
+
+    def test_privacy_page_links_to_itself(self):
+        self.assertLinksToPrivacy(self.client.get(PRIVACY_URL))
