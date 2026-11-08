@@ -79,14 +79,14 @@ Plans:
   4. A user can choose which of their events each wish is shared into, or share all their active wishes into an event in one action.
   5. A member can see who is in the event and browse the other members' shared wishes, grouped by person. A non-member who opens the event's URL gets a 404.
 
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans executed
 
 Plans:
 **Wave 1**
 - [x] 02-01-PLAN.md — Events and invite links: create an event, My events, event page with members, invite link with Copy, explicit Join confirm (signed-out round trip + session fallback), navbar, privacy update for events/members
 
 **Wave 2** *(blocked on Wave 1 completion)*
-- [ ] 02-02-PLAN.md — Wishlists, sharing and browsing: Wish reshape (no claim column), add/edit/soft-delete with links, per-event checkboxes, Share all, event page wish cards grouped by person, privacy update for wishes
+- [x] 02-02-PLAN.md — Wishlists, sharing and browsing: Wish reshape (no claim column), add/edit/soft-delete with links, per-event checkboxes, Share all, event page wish cards grouped by person, privacy update for wishes
 **UI hint**: yes
 **Notes:** Research: the invite → Google sign-in → back-to-confirm round trip for signed-out users (keep `next`, with a session fallback), tested on a clean phone. Fix the existing add-wish view: it never sets the owner and has no login check. Reshape `Wish` around an owner and a status field, with no claim fields on the wish itself. Build the owner wishlist and the participant browse pages as separate views and templates from the start.
 
@@ -131,6 +131,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Google Sign-in Live | 8/8 | In Progress | - |
-| 2. Events, Wishlists & Browsing | 1/2 | In Progress | - |
+| 2. Events, Wishlists & Browsing | 2/2 | In Progress | - |
 | 3. Secret Claims & Gift Lifecycle | 0/TBD | Not started | - |
 | 4. Family Launch | 0/TBD | Not started | - |

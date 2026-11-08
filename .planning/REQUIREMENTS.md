@@ -32,14 +32,14 @@ Requirements for the Christmas 2026 release. Each maps to roadmap phases.
 
 ### Wishes
 
-- [ ] **WISH-01**: User can add a wish to their personal wishlist with name, optional description, priority, and zero or more links
-- [ ] **WISH-02**: User can edit and delete (withdraw) their own wishes, with identical controls whether or not anyone has claimed them
-- [ ] **WISH-03**: User can choose which events each of their wishes is shared into
-- [ ] **WISH-04**: User can share all their active wishes into an event in one action
+- [x] **WISH-01**: User can add a wish to their personal wishlist with name, optional description, priority, and zero or more links
+- [x] **WISH-02**: User can edit and delete (withdraw) their own wishes, with identical controls whether or not anyone has claimed them
+- [x] **WISH-03**: User can choose which events each of their wishes is shared into
+- [x] **WISH-04**: User can share all their active wishes into an event in one action
 
 ### Browse & Claim
 
-- [ ] **CLAM-01**: Member can browse other members' wishes in an event, grouped by person
+- [x] **CLAM-01**: Member can browse other members' wishes in an event, grouped by person
 - [ ] **CLAM-02**: Member can claim a wish; only one claimer at a time, and a simultaneous second claim is rejected with "someone just took it"
 - [ ] **CLAM-03**: A claimed wish shows as taken in every event it is shared into; the claimer's/contributors' names are visible only to viewers who share at least one event with that person
 - [ ] **CLAM-04**: Other members can chip in on a claimed wish, with an optional free-text note (no money handling)
@@ -128,11 +128,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | EVNT-03 | Phase 2 | Complete |
 | EVNT-04 | Phase 2 | Complete |
 | EVNT-05 | Phase 2 | Complete |
-| WISH-01 | Phase 2 | Pending |
-| WISH-02 | Phase 2 | Pending |
-| WISH-03 | Phase 2 | Pending |
-| WISH-04 | Phase 2 | Pending |
-| CLAM-01 | Phase 2 | Pending |
+| WISH-01 | Phase 2 | Complete |
+| WISH-02 | Phase 2 | Complete |
+| WISH-03 | Phase 2 | Complete |
+| WISH-04 | Phase 2 | Complete |
+| CLAM-01 | Phase 2 | Complete |
 | CLAM-02 | Phase 3 | Pending |
 | CLAM-03 | Phase 3 | Pending |
 | CLAM-04 | Phase 3 | Pending |
