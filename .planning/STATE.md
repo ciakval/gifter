@@ -116,6 +116,7 @@ Recent decisions affecting current work:
 | Phase | State | Resume |
 |-------|-------|--------|
 | 01 | verification_deferred_human | /gsd-verify-work 01 |
+| 02 | verification_deferred_human | /gsd-verify-work 02 |
 
 ## Deferred Items
 
