@@ -9,12 +9,19 @@ No function here saves a Wish, so `wish.updated_at` and every owner-visible fiel
 from dataclasses import dataclass
 
 from django.db import IntegrityError, transaction
+from django.db.models import Prefetch
 
-from .models import Claim, Membership
+from .models import Claim, Contribution, Membership
 
 CLAIMED = "claimed"
 ALREADY_YOURS = "already_yours"
 TAKEN = "taken"
+JOINED = "joined"
+NO_CLAIM = "no_claim"
+OWN_CLAIM = "own_claim"
+CHANGED = "changed"
+HANDED_OVER = "handed_over"
+FREED = "freed"
 
 
 class SecrecyViolation(Exception):
@@ -38,6 +45,16 @@ class ClaimView:
     is_purchased: bool
     claimer: Person
     is_mine: bool
+    contributors: tuple[Person, ...] = ()
+    i_contribute: bool = False
+    can_chip_in: bool = False
+
+
+def _ordered_contributions():
+    return Prefetch(
+        "contributions",
+        queryset=Contribution.objects.select_related("user").order_by("created_at", "pk"),
+    )
 
 
 def co_member_ids(viewer) -> set[int]:
@@ -67,16 +84,26 @@ def claim_views_for(viewer, wishes) -> dict[int, ClaimView]:
         raise SecrecyViolation("claim data requested for a wish the viewer owns")
     if not wishes:
         return {}
-    claims = Claim.objects.filter(wish__in=wishes).select_related("claimer")
+    claims = (
+        Claim.objects.filter(wish__in=wishes)
+        .select_related("claimer")
+        .prefetch_related(_ordered_contributions())
+    )
     visible = co_member_ids(viewer)
-    return {
-        claim.wish_id: ClaimView(
+    views = {}
+    for claim in claims:
+        contributions = list(claim.contributions.all())
+        is_mine = claim.claimer_id == viewer.pk
+        i_contribute = any(c.user_id == viewer.pk for c in contributions)
+        views[claim.wish_id] = ClaimView(
             is_purchased=claim.status == Claim.Status.PURCHASED,
             claimer=_person(claim.claimer, viewer, visible),
-            is_mine=claim.claimer_id == viewer.pk,
+            is_mine=is_mine,
+            contributors=tuple(_person(c.user, viewer, visible, c.note) for c in contributions),
+            i_contribute=i_contribute,
+            can_chip_in=not is_mine and not i_contribute,
         )
-        for claim in claims
-    }
+    return views
 
 
 def claim_wish(user, wish) -> str:
@@ -91,3 +118,59 @@ def claim_wish(user, wish) -> str:
             return ALREADY_YOURS
         return TAKEN
     return CLAIMED
+
+
+def chip_in(user, wish, note) -> str:
+    """Join someone's claim. Repeating it keeps one row and replaces the note."""
+    if wish.owner_id == user.pk:
+        raise SecrecyViolation("a giftee cannot chip in on their own wish")
+    claim = Claim.objects.filter(wish=wish).first()
+    if claim is None:
+        return NO_CLAIM
+    if claim.claimer_id == user.pk:
+        return OWN_CLAIM
+    try:
+        with transaction.atomic():
+            contribution, created = Contribution.objects.get_or_create(
+                claim=claim, user=user, defaults={"note": note}
+            )
+            if not created and contribution.note != note:
+                contribution.note = note
+                contribution.save(update_fields=["note"])
+    except IntegrityError:
+        # The claim vanished between the lookup and the insert.
+        return CHANGED
+    return JOINED
+
+
+def mark_purchased(user, wish_pk) -> bool:
+    with transaction.atomic():
+        claim = Claim.objects.filter(wish_id=wish_pk, claimer=user).first()
+        if claim is None:
+            return False
+        claim.status = Claim.Status.PURCHASED
+        claim.save(update_fields=["status"])
+    return True
+
+
+def release_claim(user, wish_pk) -> str | None:
+    """Give up a claim (D-06): the earliest contributor takes over, or the wish is free again."""
+    with transaction.atomic():
+        claim = Claim.objects.filter(wish_id=wish_pk, claimer=user).first()
+        if claim is None:
+            return None
+        successor = claim.contributions.select_related("user").order_by("created_at", "pk").first()
+        if successor is None:
+            claim.delete()
+            return FREED
+        claim.claimer = successor.user
+        claim.status = Claim.Status.RESERVED
+        claim.acknowledged_at = successor.acknowledged_at
+        claim.save(update_fields=["claimer", "status", "acknowledged_at"])
+        successor.delete()
+        return HANDED_OVER
+
+
+def leave_contribution(user, wish_pk) -> bool:
+    deleted, _by_model = Contribution.objects.filter(claim__wish_id=wish_pk, user=user).delete()
+    return deleted > 0

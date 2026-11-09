@@ -16,6 +16,45 @@ owner pages: it renders claim state, which the giftee must never see.
       {% elif claim.claimer.name %}{% if claim.is_purchased %}{% blocktranslate with name=claim.claimer.name %}Purchased by {{ name }}{% endblocktranslate %}{% else %}{% blocktranslate with name=claim.claimer.name %}Taken by {{ name }}{% endblocktranslate %}{% endif %}
       {% else %}{% if claim.is_purchased %}{% translate "Purchased by someone" %}{% else %}{% translate "Taken by someone" %}{% endif %}{% endif %}
     </div>
+    {% for person in claim.contributors %}
+      <div class="small text-body-secondary">
+        {% if person.is_you %}{% if person.note %}{% blocktranslate with note=person.note %}You are chipping in: {{ note }}{% endblocktranslate %}{% else %}{% translate "You are chipping in." %}{% endif %}
+        {% elif person.name %}{% if person.note %}{% blocktranslate with name=person.name note=person.note %}{{ name }} is chipping in: {{ note }}{% endblocktranslate %}{% else %}{% blocktranslate with name=person.name %}{{ name }} is chipping in.{% endblocktranslate %}{% endif %}
+        {% else %}{% translate "Someone is chipping in." %}{% endif %}
+      </div>
+    {% endfor %}
+    {% if claim.can_chip_in %}
+      <form method="post" action="{% url 'wish_chip_in' event.pk wish.pk %}" class="mt-2">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{% url 'event_detail' event.pk %}#wish-{{ wish.pk }}">
+        <label for="note-{{ wish.pk }}" class="form-label small mb-1">{% translate "Note (optional)" %}</label>
+        <input type="text" id="note-{{ wish.pk }}" name="note" maxlength="200" class="form-control mb-2">
+        <button type="submit" class="btn btn-primary">{% translate "Chip in" %}</button>
+      </form>
+    {% endif %}
+    {% if claim.is_mine %}
+      <div class="d-flex flex-wrap gap-2 mt-2">
+        {% if not claim.is_purchased %}
+          <form method="post" action="{% url 'claim_purchased' wish.pk %}">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{% url 'event_detail' event.pk %}#wish-{{ wish.pk }}">
+            <button type="submit" class="btn btn-primary">{% translate "Mark purchased" %}</button>
+          </form>
+        {% endif %}
+        <form method="post" action="{% url 'claim_release' wish.pk %}">
+          {% csrf_token %}
+          <input type="hidden" name="next" value="{% url 'event_detail' event.pk %}#wish-{{ wish.pk }}">
+          <button type="submit" class="btn btn-outline-secondary">{% translate "Release" %}</button>
+        </form>
+      </div>
+    {% endif %}
+    {% if claim.i_contribute %}
+      <form method="post" action="{% url 'chip_in_leave' wish.pk %}" class="mt-2">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{% url 'event_detail' event.pk %}#wish-{{ wish.pk }}">
+        <button type="submit" class="btn btn-outline-secondary">{% translate "Stop chipping in" %}</button>
+      </form>
+    {% endif %}
   {% else %}
     <form method="post" action="{% url 'wish_claim' event.pk wish.pk %}" class="mt-2">
       {% csrf_token %}

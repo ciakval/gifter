@@ -130,3 +130,8 @@ class WishForm(BootstrapFormMixin, forms.ModelForm):
 
     def clean_links(self):
         return "\n".join(normalize_links(self.cleaned_data["links"]))
+
+
+class ChipInForm(forms.Form):
+    # max_length counts Unicode code points, so 200 x "ž" fits.
+    note = forms.CharField(required=False, max_length=200, strip=True, label=_("Note (optional)"))
