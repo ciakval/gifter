@@ -11,6 +11,7 @@ from django.core.exceptions import ValidationError
 from django.test import SimpleTestCase, TestCase
 
 from gifter.models import Wish
+from gifter.tests.helpers import claim_state_markers, without_nav
 from gifter.tests.test_events import join, make_event, make_user
 
 
@@ -141,8 +142,8 @@ class TracerTests(TestCase):
         self.client.force_login(self.anna)
         for url in ("/wishes/", "/wishes/new/"):
             with self.subTest(url=url):
-                html = self.client.get(url).content.decode().lower()
-                self.assertNotIn("claim", html)
+                html = self.client.get(url).content.decode()
+                self.assertEqual(claim_state_markers(without_nav(html)), [])
 
 
 def normalize_links(raw):
@@ -305,7 +306,7 @@ class WishCrudTests(TestCase):
         confirm = self.client.get(f"/wishes/{wish.pk}/delete/")
         self.assertContains(confirm, "Delete this wish?")
         self.assertContains(confirm, 'method="post"')
-        self.assertNotIn("claim", confirm.content.decode().lower())
+        self.assertEqual(claim_state_markers(without_nav(confirm.content.decode())), [])
         first = self.client.post(f"/wishes/{wish.pk}/delete/", follow=True)
         self.assertRedirects(first, "/wishes/")
         self.assertContains(first, "Wish deleted.")
@@ -425,7 +426,7 @@ class ShareAllTests(TestCase):
         self.assertNotIn("Anna private", html)
         self.assertNotIn("Bob shared", own)
         self.assertContains(page, 'href="/wishes/"')
-        self.assertNotIn("claim", own.lower())
+        self.assertEqual(claim_state_markers(own), [])
         self.assertContains(page, f'action="{self.url}"')
 
     def test_own_section_empty_state(self):

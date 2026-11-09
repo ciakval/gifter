@@ -14,7 +14,7 @@ from django.test import TestCase, TransactionTestCase
 from gifter import claims
 from gifter.claims import SecrecyViolation, claim_views_for
 from gifter.models import Claim, Contribution, Wish
-from gifter.tests.helpers import mask_csrf
+from gifter.tests.helpers import claim_state_markers, mask_csrf
 from gifter.tests.test_events import join, make_event, make_user
 from gifter.tests.test_wishes import make_wish
 
@@ -500,3 +500,189 @@ class PurchasedReleaseTests(ChipInScenario, TestCase):
         for claim in Claim.objects.all():
             self.assertNotEqual(claim.claimer_id, claim.wish.owner_id)
         self.assertEqual(Claim.objects.filter(wish=self.wish).count(), 1)
+
+
+def edit_payload(wish, events, **changes):
+    payload = {
+        "name": wish.name,
+        "description": wish.description,
+        "priority": str(wish.priority),
+        "links": wish.links,
+        "events": [event.pk for event in events],
+    }
+    payload.update(changes)
+    return payload
+
+
+class MyClaimsScenario(ChipInScenario):
+    """Bob claims Lego set. Bike (Anna, E1) is claimed by Kim, with Bob chipping in.
+    Socks (Anna, E1) is claimed by Lea, so Bob is not part of it."""
+
+    def build_my_claims(self):
+        self.build_chip_in()
+        self.bike = make_wish(self.anna, name="Bike", events=[self.e1], description="Red one")
+        self.bike_claim = Claim.objects.create(wish=self.bike, claimer=self.kim)
+        Contribution.objects.create(claim=self.bike_claim, user=self.bob, note="from Bob")
+        self.socks = make_wish(self.anna, name="Socks", events=[self.e1])
+        Claim.objects.create(wish=self.socks, claimer=self.lea)
+
+    def my_claims(self, user=None):
+        self.client.force_login(user or self.bob)
+        return self.client.get("/claims/")
+
+    def anna_edits(self, wish, events, **changes):
+        self.client.force_login(self.anna)
+        response = self.client.post(f"/wishes/{wish.pk}/edit/", edit_payload(wish, events, **changes))
+        self.assertEqual(response.status_code, 302)
+
+
+class MyClaimsTests(MyClaimsScenario, TestCase):
+    def setUp(self):
+        self.build_my_claims()
+
+    def test_lists_claims_and_chip_ins_but_not_other_peoples(self):
+        page = self.my_claims()
+        self.assertContains(page, "For Anna")
+        self.assertContains(page, "Lego set")
+        self.assertContains(page, "Bike")
+        self.assertContains(page, "Red one")
+        self.assertContains(page, "You are getting this.")
+        self.assertContains(page, "You are chipping in")
+        self.assertContains(page, "Taken by Kim")
+        self.assertContains(page, "Release")
+        self.assertContains(page, "Mark purchased")
+        self.assertContains(page, "Stop chipping in")
+        self.assertNotContains(page, "Socks")
+
+    def test_empty_state(self):
+        page = self.my_claims(self.dave)
+        self.assertContains(page, "You have not claimed or chipped in on anything yet.")
+
+    def test_unshared_wish_stays_listed_and_can_be_released(self):
+        self.wish.events.clear()
+        self.client.force_login(self.carol)
+        self.assertNotContains(self.client.get(self.event_url()), "Lego set")
+        self.assertContains(self.my_claims(), "Lego set")
+        response = self.client.post("/claims/%d/release/" % self.wish.pk)
+        self.assertEqual(response.status_code, 404)
+        self.client.force_login(self.bob)
+        response = self.client.post("/claims/%d/release/" % self.wish.pk)
+        self.assertRedirects(response, "/claims/", fetch_redirect_response=False)
+        self.assertFalse(Claim.objects.filter(wish=self.wish).exists())
+
+    def test_withdrawn_wish_shows_notice_and_remove_button(self):
+        Wish.objects.filter(pk__in=[self.wish.pk, self.bike.pk]).update(
+            status=Wish.Status.WITHDRAWN
+        )
+        page = self.my_claims()
+        self.assertContains(page, "Withdrawn by the owner")
+        self.assertContains(page, "Remove from my claims")
+        self.assertNotContains(page, "Mark purchased")
+        self.client.force_login(self.carol)
+        self.assertNotContains(self.client.get(self.event_url()), "Lego set")
+        self.client.force_login(self.bob)
+        self.client.post(f"/claims/{self.wish.pk}/release/")
+        self.client.post(f"/claims/{self.bike.pk}/leave/")
+        self.assertFalse(Claim.objects.filter(wish=self.wish).exists())
+        self.assertFalse(Contribution.objects.filter(user=self.bob).exists())
+
+    def test_order_is_active_then_withdrawn_then_received(self):
+        received = make_wish(self.anna, name="Received thing", events=[self.e1])
+        Claim.objects.create(wish=received, claimer=self.bob)
+        Wish.objects.filter(pk=received.pk).update(status=Wish.Status.RECEIVED)
+        Wish.objects.filter(pk=self.wish.pk).update(status=Wish.Status.WITHDRAWN)
+        html = self.my_claims().content.decode()
+        self.assertContains(self.my_claims(), "Received")
+        self.assertLess(html.index("Bike"), html.index("Lego set"))
+        self.assertLess(html.index("Lego set"), html.index("Received thing"))
+        received_card = html[html.index("Received thing") :]
+        self.assertNotIn("Release", received_card)
+
+    def test_newest_involvement_first_within_a_group(self):
+        newer = make_wish(self.anna, name="Newer one", events=[self.e1])
+        Claim.objects.create(wish=newer, claimer=self.bob)
+        html = self.my_claims().content.decode()
+        self.assertLess(html.index("Newer one"), html.index("Lego set"))
+
+    def test_changed_marker_for_claimer_and_contributor_until_got_it(self):
+        self.anna_edits(self.wish, [self.e1, self.e2], name="Lego set 2")
+        self.anna_edits(self.bike, [self.e1], name="Bike 2")
+        page = self.my_claims()
+        self.assertContains(page, "Changed since you claimed")
+        self.assertContains(page, "Changed since you chipped in")
+        self.client.force_login(self.carol)
+        self.assertNotContains(self.client.get(self.event_url()), "Changed since you")
+        self.client.force_login(self.bob)
+        self.assertContains(self.client.get(self.event_url()), "Changed since you claimed")
+        response = self.client.post(f"/claims/{self.wish.pk}/got-it/", {"next": self.event_url()})
+        self.assertEqual(response["Location"], self.event_url())
+        page = self.my_claims()
+        self.assertNotContains(page, "Changed since you claimed")
+        self.assertContains(page, "Changed since you chipped in")
+        self.client.post(f"/claims/{self.bike.pk}/got-it/")
+        self.assertNotContains(self.my_claims(), "Changed since you")
+
+    def test_share_only_edit_and_status_only_save_raise_no_marker(self):
+        self.anna_edits(self.wish, [self.e1])
+        self.assertNotContains(self.my_claims(), "Changed since you")
+        wish = Wish.objects.get(pk=self.wish.pk)
+        wish.status = Wish.Status.RECEIVED
+        wish.save(update_fields=["status"])
+        self.assertNotContains(self.my_claims(), "Changed since you")
+
+    def test_marker_carries_over_to_the_new_claimer_after_hand_over(self):
+        self.anna_edits(self.bike, [self.e1], name="Bike 2")
+        self.client.force_login(self.kim)
+        self.client.post(f"/claims/{self.bike.pk}/release/")
+        page = self.my_claims(self.bob)
+        self.assertContains(page, "You are getting this.")
+        self.assertContains(page, "Changed since you claimed")
+
+    def test_got_it_uniform_404(self):
+        self.client.force_login(self.bob)
+        baseline = self.client.post("/claims/999999/got-it/").content
+        for user in (self.anna, self.carol, self.dave):
+            self.client.force_login(user)
+            response = self.client.post(f"/claims/{self.wish.pk}/got-it/")
+            self.assertEqual(response.status_code, 404)
+            self.assertEqual(response.content, baseline)
+        self.assertEqual(self.client.get(f"/claims/{self.wish.pk}/got-it/").status_code, 405)
+
+    def test_nav_link_and_login_redirect(self):
+        self.client.force_login(self.dave)
+        self.assertContains(self.client.get("/events/"), 'href="/claims/"')
+        self.client.logout()
+        self.assertRedirects(self.client.get("/claims/"), "/?next=/claims/", fetch_redirect_response=False)
+
+    def test_actions_fall_back_to_my_claims(self):
+        self.client.force_login(self.bob)
+        response = self.client.post(f"/claims/{self.wish.pk}/purchased/", {"next": "https://evil.example/"})
+        self.assertEqual(response["Location"], "/claims/")
+        response = self.client.post(f"/claims/{self.bike.pk}/leave/")
+        self.assertEqual(response["Location"], "/claims/")
+
+    def test_names_on_my_claims_follow_the_visibility_rule(self):
+        # Fran lives only in E5 with Anna. Bob lives only in E1. The phone is shared into both.
+        fran = make_user("fran", first_name="Fran")
+        e5 = make_event(self.anna, name="Work")
+        join(e5, fran)
+        phone = make_wish(self.anna, name="Phone", events=[self.e1, e5])
+        Claim.objects.create(wish=phone, claimer=fran)
+        Contribution.objects.create(
+            claim=Claim.objects.get(wish=phone), user=self.bob, note="secret note"
+        )
+        bob_page = self.my_claims(self.bob)
+        self.assertContains(bob_page, "Taken by someone")
+        self.assertNotContains(bob_page, "Fran")
+        fran_page = self.my_claims(fran)
+        self.assertContains(fran_page, "Someone is chipping in.")
+        self.assertNotContains(fran_page, "secret note")
+        self.assertNotContains(fran_page, "Bob")
+
+    def test_claim_state_markers_match_the_rendered_copy(self):
+        self.client.force_login(self.carol)
+        event_page = self.client.get(self.event_url()).content.decode()
+        found = claim_state_markers(event_page)
+        self.assertIn("Taken", found)
+        self.assertIn("chipping in", found)
+        self.assertIn("Release", claim_state_markers(self.my_claims().content.decode()))
