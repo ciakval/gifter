@@ -27,6 +27,8 @@ urlpatterns = [
     path("wishes/new/", views.wish_create, name="wish_create"),
     path("wishes/<int:pk>/edit/", views.wish_edit, name="wish_edit"),
     path("wishes/<int:pk>/delete/", views.wish_delete, name="wish_delete"),
+    path("wishes/<int:pk>/received/", views.wish_received, name="wish_received"),
+    path("wishes/<int:pk>/reopen/", views.wish_reopen, name="wish_reopen"),
     path("invite/<slug:token>/", views.invite, name="invite"),
     path("privacy/", views.privacy, name="privacy"),
 ]

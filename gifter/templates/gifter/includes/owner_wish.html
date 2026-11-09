@@ -18,6 +18,16 @@ The participant view is a separate file (member_wish.html); never merge them.
     {% if show_actions %}
       <a href="{% url 'wish_edit' wish.pk %}" class="btn btn-sm btn-outline-primary">{% translate "Edit" %}</a>
       <a href="{% url 'wish_delete' wish.pk %}" class="btn btn-sm btn-outline-danger">{% translate "Delete" %}</a>
+      <form method="post" action="{% url 'wish_received' wish.pk %}" class="d-inline">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-sm btn-outline-success">{% translate "Received" %}</button>
+      </form>
+    {% endif %}
+    {% if show_reopen %}
+      <form method="post" action="{% url 'wish_reopen' wish.pk %}" class="d-inline">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-sm btn-outline-secondary">{% translate "Reopen" %}</button>
+      </form>
     {% endif %}
   </div>
 </div>

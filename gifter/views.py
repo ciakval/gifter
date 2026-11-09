@@ -181,7 +181,47 @@ def wishlist(request):
         .prefetch_related("events")
         .order_by("priority", "-created_at", "-pk")
     )
-    return render(request, "gifter/wishlist.html", {"wishes": wishes})
+    # LIFE-01 ordering: priority, then newest. Never by receipt time and never by claim data.
+    received_wishes = (
+        request.user.wishes.filter(status=Wish.Status.RECEIVED)
+        .prefetch_related("events")
+        .order_by("priority", "-created_at", "-pk")
+    )
+    return render(
+        request,
+        "gifter/wishlist.html",
+        {"wishes": wishes, "received_wishes": received_wishes},
+    )
+
+
+@require_POST
+def wish_received(request, pk):
+    # Owner path: never imports claim code and never touches claims (D-12). Status only, so
+    # updated_at stays put and claimers get no false "changed" marker. Repeating is a no-op.
+    wish = get_object_or_404(
+        Wish,
+        pk=pk,
+        owner=request.user,
+        status__in=[Wish.Status.ACTIVE, Wish.Status.RECEIVED],
+    )
+    wish.status = Wish.Status.RECEIVED
+    wish.save(update_fields=["status"])
+    messages.success(request, _("Marked as received."))
+    return redirect("wishlist")
+
+
+@require_POST
+def wish_reopen(request, pk):
+    wish = get_object_or_404(
+        Wish,
+        pk=pk,
+        owner=request.user,
+        status__in=[Wish.Status.RECEIVED, Wish.Status.ACTIVE],
+    )
+    wish.status = Wish.Status.ACTIVE
+    wish.save(update_fields=["status"])
+    messages.success(request, _("Wish reopened."))
+    return redirect("wishlist")
 
 
 def wish_create(request):
