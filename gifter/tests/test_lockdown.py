@@ -12,6 +12,7 @@ from django.contrib import admin
 from django.contrib.auth import get_user_model
 from django.core.management import call_command
 from django.core.management.base import CommandError
+from django.db import transaction
 from django.test import TestCase
 from django.urls import URLPattern, URLResolver, get_resolver
 
@@ -26,7 +27,9 @@ from gifter.tests.test_auth import (
     GoogleRoundTripMixin,
     fake_get_access_token,
 )
-from gifter.models import Claim, Contribution, Wish
+from gifter.models import Claim, Contribution, Event, Membership, Wish
+from gifter.tests.test_events import join, make_event
+from gifter.tests.test_wishes import make_wish
 
 
 def make_user(username, email="", **extra):
@@ -160,6 +163,98 @@ class PromoteStaffTests(TestCase):
         with self.assertRaises(CommandError):
             self.run_command("anna@example.com")
         self.assert_nobody_promoted()
+
+
+class DeleteUserCommandTests(TestCase):
+    """manage.py delete_user: the operator's deletion route, which never shows claim counts."""
+
+    def setUp(self):
+        self.anna = make_google_user("anna", "anna@example.com", "1")
+        self.bob = make_google_user("bob", "bob@example.com", "2")
+        self.carl = make_user("carl")
+        self.event = make_event(self.bob, name="Christmas")
+        join(self.event, self.anna)
+        join(self.event, self.carl)
+        self.wish_a = make_wish(self.anna, name="Lamp", events=[self.event])
+        self.wish_b = make_wish(self.bob, name="Hat", events=[self.event])
+
+    def add_claims(self):
+        claim = Claim.objects.create(wish=self.wish_a, claimer=self.bob)
+        Contribution.objects.create(claim=claim, user=self.carl, note="from carl")
+        Claim.objects.create(wish=self.wish_b, claimer=self.carl)
+
+    def run_command(self, *args):
+        out = StringIO()
+        call_command("delete_user", *args, stdout=out)
+        return out.getvalue()
+
+    def in_rolled_back_state(self, claims, *args):
+        sid = transaction.savepoint()
+        try:
+            if claims:
+                self.add_claims()
+            return self.run_command(*args)
+        finally:
+            transaction.savepoint_rollback(sid)
+
+    def test_dry_run_names_the_account_and_deletes_nothing(self):
+        output = self.run_command("bob")
+        self.assertIn("bob", output)
+        self.assertIn("bob@example.com", output)
+        self.assertIn("Nothing was deleted", output)
+        self.assertTrue(get_user_model().objects.filter(username="bob").exists())
+
+    def test_yes_deletes_the_user_and_everything_tied_to_them(self):
+        self.add_claims()
+        output = self.run_command("bob", "--yes")
+        self.assertIn("bob", output)
+        User = get_user_model()
+        self.assertFalse(User.objects.filter(username="bob").exists())
+        self.assertFalse(SocialAccount.objects.filter(uid="2").exists())
+        self.assertFalse(EmailAddress.objects.filter(email="bob@example.com").exists())
+        self.assertFalse(Wish.objects.filter(pk=self.wish_b.pk).exists())
+        self.assertFalse(Membership.objects.filter(user_id=self.bob.pk).exists())
+        # Bob's claim on Anna's wish went with Carl's chip-in on it, and Carl's claim on Bob's
+        # wish went with the wish.
+        self.assertEqual(Claim.objects.count(), 0)
+        self.assertEqual(Contribution.objects.count(), 0)
+        self.assertTrue(User.objects.filter(username="anna").exists())
+        self.assertTrue(User.objects.filter(username="carl").exists())
+        self.assertTrue(Wish.objects.filter(pk=self.wish_a.pk).exists())
+        event = Event.objects.get(pk=self.event.pk)
+        self.assertIsNone(event.created_by)
+
+    def test_output_is_identical_with_and_without_claims(self):
+        for args in (("bob",), ("bob", "--yes")):
+            with self.subTest(args=args):
+                self.assertEqual(
+                    self.in_rolled_back_state(False, *args),
+                    self.in_rolled_back_state(True, *args),
+                )
+
+    def test_output_prints_no_number_that_depends_on_the_data(self):
+        output = self.in_rolled_back_state(True, "bob", "--yes")
+        self.assertNotRegex(output.replace("bob@example.com", ""), r"\d")
+
+    def test_unknown_username_fails(self):
+        before = get_user_model().objects.count()
+        with self.assertRaises(CommandError) as ctx:
+            self.run_command("nobody", "--yes")
+        self.assertIn("Nobody was deleted", str(ctx.exception))
+        self.assertEqual(get_user_model().objects.count(), before)
+
+    def test_last_staff_account_is_refused(self):
+        dave = make_user("dave", is_staff=True)
+        for args in (("dave",), ("dave", "--yes")):
+            with self.subTest(args=args):
+                with self.assertRaises(CommandError) as ctx:
+                    self.run_command(*args)
+                self.assertIn("Nobody was deleted", str(ctx.exception))
+                self.assertTrue(get_user_model().objects.filter(pk=dave.pk).exists())
+        self.carl.is_staff = True
+        self.carl.save()
+        self.run_command("dave", "--yes")
+        self.assertFalse(get_user_model().objects.filter(pk=dave.pk).exists())
 
 
 class AdminLockdownTests(TestCase):
