@@ -65,7 +65,7 @@ findings:
     title: "Authenticated visitor loses `next` on the landing page; proxy headers are trusted from the whole shared network"
 open: 0
 total: 15
-updated: 2026-11-08T20:00:00.000Z
+updated: 2026-11-09T19:26:42.000Z
 ---
 # Phase 01: Code Review Disposition
 
@@ -74,7 +74,7 @@ updated: 2026-11-08T20:00:00.000Z
 | WR-01 | warning | fixed | 01-06 |
 | WR-02 | warning | deferred | partial: action SHAs pinned in 01-06; secrets: inherit + @v1 kept — bombur-deploy declares no workflow_call secrets (T-01-35); follow-up: declare DEPLOY_SSH_KEY in ciakval/bombur-deploy then map explicitly |
 | WR-03 | warning | fixed | 01-07 |
-| WR-04 | warning | fixed | 01-07 |
+| WR-04 | warning | fixed | 01-07; its admin deletion (users, social accounts and email addresses deletable in the admin) superseded by 03-03 for SECR-01: the delete confirmation listed a staff giftee's Claim rows, so admin deletion is denied and people are deleted with manage.py delete_user |
 | WR-05 | warning | fixed | 01-07 |
 | WR-06 | warning | fixed | 02-02 (Wish has no claim column; claims become their own model in Phase 3) |
 | WR-07 | warning | deferred | Phase 4, with the I18N-01 language switcher |

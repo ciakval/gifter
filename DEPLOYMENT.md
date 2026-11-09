@@ -174,6 +174,63 @@ printed uid against `/gifter-admin/socialaccount/socialaccount/`.
 
 The admin lives at `/gifter-admin/` (its own login redirects to Google sign-in).
 
+### Delete someone's account (data request)
+
+`/privacy/` promises that a person's account and everything Gifter stores about them can be
+deleted on request. The admin cannot do it (its deletion summary would show the author claims
+on his own wishes), so use `delete_user`:
+
+1. Find the person at `/gifter-admin/gifter/user/` (search by name or email) and note the
+   username.
+2. Dry run (it shows the account and deletes nothing):
+
+   ```sh
+   docker exec -ti gifter-web python manage.py delete_user <username>
+   ```
+
+3. Make a pre-deletion copy of the live database, outside `./data`. `.backup` is consistent
+   while `gifter-web` runs and produces one self-contained file:
+
+   ```sh
+   sudo -u deploy sqlite3 /home/deploy/DOCKER/gifter/data/db.sqlite3 \
+     ".backup /home/deploy/gifter-pre-deletion.sqlite3"
+   ```
+
+   (Alternative without `sqlite3`: stop the container with `docker compose stop`, copy all
+   three files `db.sqlite3`, `db.sqlite3-wal` and `db.sqlite3-shm` from `./data` to a
+   directory outside `./data`, and start the container again with `docker compose up -d`.)
+   Then repeat the command with `--yes`:
+
+   ```sh
+   docker exec -ti gifter-web python manage.py delete_user <username> --yes
+   ```
+
+4. Verify: the dry run for the same username now fails with "Nobody was deleted", and
+   `bash scripts/smoke.sh https://gifter.remesh.cz` passes. If the check fails, stop the
+   container (`docker compose stop`), restore from the pre-deletion copy and start it again.
+   For the `.backup` copy, copy it over `./data/db.sqlite3` and delete the stale
+   `db.sqlite3-wal` and `db.sqlite3-shm` next to it, which belong to the database being
+   replaced. For the file-level copy, put all three files back. Either way make sure
+   `./data` stays owned by uid 1000.
+5. Once the check passes, remove the pre-deletion copy (`rm /home/deploy/gifter-pre-deletion.sqlite3`,
+   or all three files of the file-level copy). Reply to the person only after this step.
+
+The deletion is final, and cannot be undone, only once the pre-deletion copy is removed: until
+then the copy still holds the person's data. The same goes for any copy or backup of the
+database made before the deletion (an earlier manual copy as under Rules and gotchas, and the
+backups planned for Phase 4 once they exist): it still holds the person's data until it is
+removed or rotated. Remove earlier manual copies too, so that the promise in `/privacy/` (the
+account and everything Gifter stores about the person is deleted) holds.
+
+Deleting a user also removes their wishes (and any claims on them), their memberships, the
+claims they made (including other people's chip-ins on those claims), their own chip-ins and
+their Google identity rows. Events they created stay, without a creator. `delete_user`
+refuses to delete the last active staff account (promote someone else first), and its output
+never depends on claims or chip-ins.
+
+Never delete people from a Django shell or `manage.py shell`: `delete()` echoes per-model
+counts, including claims, and the operator is also a giftee.
+
 Revoke CI's deploy access: delete the `gh-gifter` line in `/home/deploy/.ssh/authorized_keys`.
 
 ## Rules and gotchas
@@ -183,8 +240,11 @@ Revoke CI's deploy access: delete the `gh-gifter` line in `/home/deploy/.ssh/aut
 - Caddy only proxies; WhiteNoise serves the static files from the app.
 - **The admin offers no "Social applications" or "Social tokens".** The Google credentials
   come from settings (environment); a database row as well would break sign-in. Social
-  accounts and Email addresses are view and delete only. Wishes and claims are never in the
-  admin: the author is staff and also a giftee.
+  accounts and Email addresses are view only. Users cannot be deleted in the admin, and the
+  user list refuses filters on related rows such as claims, because both would show the
+  author claims on his own wishes. People are deleted with `delete_user` (see "Delete
+  someone's account"). Wishes and claims are never in the admin: the author is staff and
+  also a giftee.
 - Only seven `accounts/` routes exist (Google sign-in, sign-out, cancelled, error and the
   sign-up fallback). A test pins the list; everything else under `accounts/` is 404.
 - Rotating `SECRET_KEY` signs everyone out.
@@ -198,3 +258,5 @@ Revoke CI's deploy access: delete the `gh-gifter` line in `/home/deploy/.ssh/aut
 - HSTS starts at 3600 s (`SECURE_HSTS_SECONDS`); raise it after a week of working HTTPS.
 - Backups of `./data` are planned for Phase 4. Until then, copy all three SQLite files
   (`db.sqlite3`, `-wal`, `-shm`) together, or use `sqlite3 db.sqlite3 ".backup copy.sqlite3"`.
+  Remove such a copy once it has served its purpose: it keeps the data of anyone deleted
+  afterwards (see "Delete someone's account").
