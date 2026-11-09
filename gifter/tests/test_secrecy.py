@@ -37,6 +37,7 @@ from typing import NamedTuple
 from urllib.parse import urlsplit
 
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.db import connection, transaction
 from django.test import Client, TestCase, override_settings
 from django.test.utils import CaptureQueriesContext
@@ -696,3 +697,72 @@ class ChokepointTests(SecrecyMixin, TestCase):
 
         self.assertFalse(admin.site.is_registered(Claim))
         self.assertFalse(admin.site.is_registered(Contribution))
+
+
+class StaffGifteeTests(SecrecyMixin, TestCase):
+    """The author is staff and superuser (promote_staff) and also a giftee.
+
+    The suite used to crawl only as a non-staff giftee, which let the admin's user delete page
+    through: its deletion summary listed every cascading row, Claim rows included
+    (03-VERIFICATION.md, T-03-18). Everything below runs as a staff giftee.
+    """
+
+    def setUp(self):
+        super().setUp()
+        self.fx.gita.is_staff = True
+        self.fx.gita.is_superuser = True
+        self.fx.gita.save(update_fields=["is_staff", "is_superuser"])
+
+    def test_admin_user_delete_pages_show_no_claim_data(self):
+        fx = self.fx
+        wish_names = list(Wish.objects.filter(owner=fx.gita).values_list("name", flat=True))
+        self.assertEqual(len(wish_names), 6)
+        users = (fx.gita, fx.carl, fx.kim, fx.sam, fx.oscar)
+        with with_claims(fx):
+            client = fresh_client(fx.gita)
+            home = client.get("/gifter-admin/", follow=True)
+            self.assertEqual(home.status_code, 200)
+            self.assertEqual(home.redirect_chain, [])
+
+            bodies = set()
+            urls = [f"/gifter-admin/gifter/user/{user.pk}/delete/" for user in users]
+            urls.append("/gifter-admin/gifter/user/999999/delete/")
+            for url in urls:
+                with self.subTest(url=url):
+                    response = client.get(url)
+                    self.assertEqual(response.status_code, 403)
+                    body = body_of(response)
+                    for name in wish_names:
+                        self.assertNotIn(name, body)
+                    bodies.add(body)
+            self.assertEqual(len(bodies), 1)
+
+            counts = (
+                get_user_model().objects.count(),
+                Claim.objects.count(),
+                Contribution.objects.count(),
+            )
+            sam_url = f"/gifter-admin/gifter/user/{fx.sam.pk}/delete/"
+            self.assertEqual(client.post(sam_url, {"post": "yes"}).status_code, 403)
+            self.assertTrue(get_user_model().objects.filter(pk=fx.sam.pk).exists())
+            self.assertEqual(
+                counts,
+                (
+                    get_user_model().objects.count(),
+                    Claim.objects.count(),
+                    Contribution.objects.count(),
+                ),
+            )
+
+            bulk = client.post(
+                "/gifter-admin/gifter/user/",
+                {"action": "delete_selected", "_selected_action": [u.pk for u in users]},
+                follow=True,
+            )
+            self.assertEqual(bulk.status_code, 200)
+            bulk_body = body_of(bulk)
+            for name in wish_names:
+                self.assertNotIn(name, bulk_body)
+            self.assertNotIn('value="delete_selected"', bulk_body)
+            for user in users:
+                self.assertTrue(get_user_model().objects.filter(pk=user.pk).exists())
