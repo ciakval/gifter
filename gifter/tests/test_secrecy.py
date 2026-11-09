@@ -34,17 +34,28 @@ import copy
 import re
 from pathlib import Path
 from typing import NamedTuple
+from unittest import mock
 from urllib.parse import urlsplit
 
 from django.conf import settings
+from django.contrib import admin
+from django.contrib.admin.utils import NestedObjects
 from django.contrib.auth import get_user_model
+from django.contrib.auth.admin import UserAdmin
+from django.contrib.auth.models import Group, update_last_login
+from django.contrib.auth.signals import user_logged_in
+from django.contrib.contenttypes.models import ContentType
 from django.db import connection, transaction
-from django.test import Client, TestCase, override_settings
+from django.test import Client, RequestFactory, TestCase, override_settings
 from django.test.utils import CaptureQueriesContext
 from django.urls import get_resolver, resolve, reverse
 
 import gifter
+from allauth.account.models import EmailAddress
+from allauth.socialaccount.models import SocialAccount
+
 from gifter import claims
+from gifter.admin import GifterUserAdmin
 from gifter.models import Claim, Contribution, Wish
 from gifter.tests.helpers import claim_state_markers, mask_csrf
 from gifter.tests.test_events import join, make_event, make_user
@@ -246,6 +257,59 @@ def probes(fx):
     for path in ADMIN_PATHS:
         add(f"admin {path}", "GET", path)
     return sorted(found, key=lambda p: (p.path, p.method))
+
+
+def staff_admin_probes(fx):
+    """Admin pages and actions that touch users, from the staff giftee's point of view."""
+    found = []
+
+    def add(label, method, path, data=None):
+        found.append(Probe(f"staff {label} {method}", method, path, data or {}, None))
+
+    users = (fx.gita, fx.carl, fx.kim, fx.sam, fx.oscar)
+    for user in users:
+        base = f"/gifter-admin/gifter/user/{user.pk}/"
+        for page in ("change/", "delete/", "history/", "password/"):
+            add(f"user {user.username} {page}", "GET", base + page)
+    add("user 999999 delete/", "GET", "/gifter-admin/gifter/user/999999/delete/")
+    for model, prefix in (
+        (SocialAccount, "/gifter-admin/socialaccount/socialaccount/"),
+        (EmailAddress, "/gifter-admin/account/emailaddress/"),
+    ):
+        for row in model.objects.order_by("pk"):
+            for page in ("change/", "delete/", "history/"):
+                add(f"{model.__name__} {row.pk} {page}", "GET", f"{prefix}{row.pk}/{page}")
+    for row in Group.objects.order_by("pk"):
+        for page in ("change/", "delete/"):
+            add(f"Group {row.pk} {page}", "GET", f"/gifter-admin/auth/group/{row.pk}/{page}")
+    everything = {
+        "/gifter-admin/gifter/user/": get_user_model(),
+        "/gifter-admin/socialaccount/socialaccount/": SocialAccount,
+        "/gifter-admin/account/emailaddress/": EmailAddress,
+        "/gifter-admin/auth/group/": Group,
+    }
+    for path, model in everything.items():
+        pks = list(model.objects.order_by("pk").values_list("pk", flat=True))
+        add(f"bulk delete {path}", "POST", path, {"action": "delete_selected", "_selected_action": pks})
+    group = Group.objects.order_by("pk").first()
+    for relation in get_user_model()._meta.related_objects:
+        add(f"filter {relation.name} isnull", "GET", f"/gifter-admin/gifter/user/?{relation.name}__isnull=False")
+        add(f"filter {relation.name} pk", "GET", f"/gifter-admin/gifter/user/?{relation.name}=2")
+    add("filter is_staff", "GET", "/gifter-admin/gifter/user/?is_staff__exact=1")
+    add("filter group", "GET", f"/gifter-admin/gifter/user/?groups__id__exact={group.pk}")
+    for model in (Claim, Contribution):
+        content_type = ContentType.objects.get_for_model(model)
+        for n in range(1, 9):
+            add(f"shortcut {model.__name__} {n}", "GET", f"/gifter-admin/r/{content_type.pk}/{n}/")
+    return sorted(found, key=lambda p: (p.path, p.method))
+
+
+def staff_probes(fx):
+    """probes(fx) plus the staff-only admin probes, one per (method, path)."""
+    merged = {}
+    for probe in probes(fx) + staff_admin_probes(fx):
+        merged.setdefault((probe.method, probe.path), probe)
+    return sorted(merged.values(), key=lambda p: (p.path, p.method))
 
 
 def normalize_route(route):
@@ -692,9 +756,19 @@ class ChokepointTests(SecrecyMixin, TestCase):
         with self.assertRaises(claims.SecrecyViolation):
             claims.claim_views_for(self.fx.gita, [self.fx.w1])
 
-    def test_claim_and_contribution_are_not_registered_in_the_admin(self):
-        from django.contrib import admin
+    def test_claim_and_contribution_str_never_name_the_wish(self):
+        with with_claims(self.fx):
+            rows = list(Claim.objects.select_related("wish")) + list(
+                Contribution.objects.select_related("claim__wish")
+            )
+            self.assertGreater(len(rows), 8)
+            for row in rows:
+                wish = row.wish if isinstance(row, Claim) else row.claim.wish
+                with self.subTest(row=f"{type(row).__name__} {row.pk}"):
+                    self.assertTrue(str(row))
+                    self.assertNotIn(wish.name, str(row))
 
+    def test_claim_and_contribution_are_not_registered_in_the_admin(self):
         self.assertFalse(admin.site.is_registered(Claim))
         self.assertFalse(admin.site.is_registered(Contribution))
 
@@ -712,6 +786,106 @@ class StaffGifteeTests(SecrecyMixin, TestCase):
         self.fx.gita.is_staff = True
         self.fx.gita.is_superuser = True
         self.fx.gita.save(update_fields=["is_staff", "is_superuser"])
+        for user, uid in ((self.fx.gita, "1001"), (self.fx.sam, "1002")):
+            email = f"{user.username}@example.com"
+            EmailAddress.objects.create(user=user, email=email, primary=True, verified=True)
+            SocialAccount.objects.create(
+                user=user, provider="google", uid=uid, extra_data={"email": email}
+            )
+        family = Group.objects.create(name="Family")
+        family.user_set.add(self.fx.gita, self.fx.sam)
+        # force_login stamps last_login, which the user change page renders to the second.
+        # Remove it at the source instead of masking it in the snapshots.
+        user_logged_in.disconnect(update_last_login, dispatch_uid="update_last_login")
+        self.addCleanup(
+            user_logged_in.connect, update_last_login, dispatch_uid="update_last_login"
+        )
+
+    def selection(self, wanted):
+        found = [p for p in staff_probes(self.fx) if (p.method, p.path) in wanted]
+        self.assertEqual(len(found), len(wanted))
+        return found
+
+    def test_every_staff_giftee_response_is_byte_identical_with_and_without_claims(self):
+        for probe in staff_probes(self.fx):
+            with self.subTest(probe=probe.label):
+                self.assertEqual(
+                    snapshot(self.fx, probe, False), snapshot(self.fx, probe, True)
+                )
+
+    def test_staff_pass_reaches_real_admin_pages(self):
+        fx = self.fx
+        found = staff_probes(fx)
+        keys = {(p.method, p.path) for p in found}
+        for user in (fx.gita, fx.carl, fx.kim, fx.sam, fx.oscar):
+            self.assertIn(("GET", f"/gifter-admin/gifter/user/{user.pk}/delete/"), keys)
+        for path in (
+            "/gifter-admin/gifter/user/",
+            "/gifter-admin/socialaccount/socialaccount/",
+            "/gifter-admin/account/emailaddress/",
+            "/gifter-admin/auth/group/",
+        ):
+            self.assertIn(("POST", path), keys)
+        for relation in get_user_model()._meta.related_objects:
+            self.assertIn(
+                ("GET", f"/gifter-admin/gifter/user/?{relation.name}__isnull=False"), keys
+            )
+        shortcuts = [p for p in found if p.path.startswith("/gifter-admin/r/") and p.path != "/gifter-admin/r/1/1/"]
+        self.assertGreaterEqual(len(shortcuts), 15)
+        own = fresh_client(fx.gita).get(
+            f"/gifter-admin/gifter/user/{fx.gita.pk}/change/", follow=True
+        )
+        self.assertEqual(own.status_code, 200)
+        self.assertEqual(own.redirect_chain, [])
+
+    def test_staff_pass_catches_a_reopened_admin_leak(self):
+        """The permanent counterpart of SelfSensitivityTests for the staff pass: it proves on
+        every run that the byte-identical staff test can fail."""
+        fx = self.fx
+        user_list = "/gifter-admin/gifter/user/"
+        deletes = self.selection(
+            {
+                ("GET", f"{user_list}{fx.gita.pk}/delete/"),
+                ("GET", f"{user_list}{fx.sam.pk}/delete/"),
+                ("POST", user_list),
+            }
+        )
+        lookups = self.selection(
+            {
+                ("GET", f"{user_list}?claims__isnull=False"),
+                ("GET", f"{user_list}?contributions__isnull=False"),
+            }
+        )
+        self.assertEqual(snapshot_findings(fx, deletes), [])
+        self.assertEqual(snapshot_findings(fx, lookups), [])
+
+        with mock.patch.object(GifterUserAdmin, "has_delete_permission", return_value=True):
+            self.assertCountEqual(
+                snapshot_findings(fx, deletes), [p.label for p in deletes]
+            )
+        with mock.patch.object(GifterUserAdmin, "lookup_allowed", UserAdmin.lookup_allowed):
+            self.assertCountEqual(
+                snapshot_findings(fx, lookups), [p.label for p in lookups]
+            )
+
+        self.assertEqual(snapshot_findings(fx, deletes), [])
+        self.assertEqual(snapshot_findings(fx, lookups), [])
+
+    def test_admin_deletes_that_reach_claim_data_are_denied(self):
+        reaching = set()
+        with with_claims(self.fx):
+            request = RequestFactory().get("/gifter-admin/")
+            request.user = self.fx.gita
+            for model, model_admin in admin.site._registry.items():
+                for obj in model._default_manager.all():
+                    collector = NestedObjects(using="default")
+                    collector.collect([obj])
+                    models = set(collector.model_objs) | {type(r) for r in collector.protected}
+                    if models & {Claim, Contribution}:
+                        reaching.add(model)
+                        with self.subTest(model=model.__name__, pk=obj.pk):
+                            self.assertFalse(model_admin.has_delete_permission(request, obj))
+        self.assertIn(get_user_model(), reaching)
 
     def test_admin_user_delete_pages_show_no_claim_data(self):
         fx = self.fx
