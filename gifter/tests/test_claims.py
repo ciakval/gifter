@@ -289,3 +289,214 @@ class ClaimRaceTests(ClaimScenario, TransactionTestCase):
             winner = next(pk for pk, outcome in results.items() if outcome == "claimed")
             self.assertEqual(claim.claimer_id, winner)
             self.assertNotEqual(claim.claimer_id, claim.wish.owner_id)
+
+
+class ChipInScenario(ClaimScenario):
+    """Adds Kim and Lea (both in E1) and Bob's claim on the wish."""
+
+    def build_chip_in(self):
+        self.build()
+        self.kim = make_user("kim", first_name="Kim")
+        self.lea = make_user("lea", first_name="Lea")
+        join(self.e1, self.kim)
+        join(self.e1, self.lea)
+        self.claim = Claim.objects.create(wish=self.wish, claimer=self.bob)
+
+    def chip_url(self, event=None, wish_pk=None):
+        return f"/events/{(event or self.e1).pk}/wishes/{wish_pk or self.wish.pk}/chip-in/"
+
+    def action_url(self, action, wish_pk=None):
+        return f"/claims/{wish_pk or self.wish.pk}/{action}/"
+
+
+class ChipInTests(ChipInScenario, TestCase):
+    def setUp(self):
+        self.build_chip_in()
+
+    def test_chip_in_with_note_is_visible_to_co_members_only(self):
+        self.client.force_login(self.kim)
+        response = self.client.post(self.chip_url(), {"note": "I'll add 500 Kč"})
+        self.assertRedirects(
+            response,
+            f"/events/{self.e1.pk}/#wish-{self.wish.pk}",
+            fetch_redirect_response=False,
+        )
+        self.assertEqual(Contribution.objects.get().note, "I'll add 500 Kč")
+        own = self.client.get(self.event_url())
+        self.assertContains(own, "You are chipping in")
+        self.client.force_login(self.carol)
+        page = self.client.get(self.event_url())
+        self.assertContains(page, "Kim is chipping in")
+        self.assertContains(page, "add 500 Kč")
+        # Dave shares E2 with Anna only, so he shares no event with Kim.
+        self.client.force_login(self.dave)
+        page = self.client.get(self.event_url(self.e2))
+        self.assertContains(page, "Someone is chipping in.")
+        self.assertNotContains(page, "add 500")
+        self.assertNotContains(page, "Kim")
+
+    def test_contributors_listed_in_chip_in_order(self):
+        Contribution.objects.create(claim=self.claim, user=self.lea, note="second")
+        Contribution.objects.create(claim=self.claim, user=self.kim, note="third")
+        self.client.force_login(self.carol)
+        html = self.client.get(self.event_url()).content.decode()
+        self.assertLess(html.index("Lea is chipping in"), html.index("Kim is chipping in"))
+
+    def test_claimer_has_no_chip_in_button_and_cannot_chip_in(self):
+        self.client.force_login(self.bob)
+        page = self.client.get(self.event_url())
+        self.assertNotContains(page, "Chip in")
+        response = self.client.post(self.chip_url(), {"note": "x"}, follow=True)
+        self.assertContains(response, "You are already getting this one.")
+        self.assertEqual(Contribution.objects.count(), 0)
+
+    def test_second_chip_in_keeps_one_row_and_replaces_the_note(self):
+        self.client.force_login(self.kim)
+        self.client.post(self.chip_url(), {"note": "first"})
+        self.client.post(self.chip_url(), {"note": "second"})
+        self.assertEqual(Contribution.objects.count(), 1)
+        self.assertEqual(Contribution.objects.get().note, "second")
+
+    def test_empty_and_whitespace_notes_are_stored_empty(self):
+        self.client.force_login(self.kim)
+        self.client.post(self.chip_url(), {"note": "   "})
+        self.assertEqual(Contribution.objects.get().note, "")
+        self.client.force_login(self.lea)
+        self.client.post(self.chip_url(), {})
+        self.assertEqual(Contribution.objects.get(user=self.lea).note, "")
+
+    def test_note_limit_counts_code_points(self):
+        self.client.force_login(self.kim)
+        self.client.post(self.chip_url(), {"note": "ž" * 200})
+        self.assertEqual(Contribution.objects.get().note, "ž" * 200)
+        self.client.force_login(self.lea)
+        response = self.client.post(self.chip_url(), {"note": "ž" * 201}, follow=True)
+        self.assertEqual(Contribution.objects.filter(user=self.lea).count(), 0)
+        self.assertContains(response, "alert-danger")
+
+    def test_script_in_note_is_escaped(self):
+        self.client.force_login(self.kim)
+        self.client.post(self.chip_url(), {"note": "<script>alert(1)</script>"})
+        self.client.force_login(self.carol)
+        page = self.client.get(self.event_url())
+        self.assertNotContains(page, "<script>alert(1)</script>")
+        self.assertContains(page, "&lt;script&gt;alert(1)&lt;/script&gt;")
+
+    def test_chip_in_after_release_says_free_again(self):
+        self.claim.delete()
+        self.client.force_login(self.kim)
+        response = self.client.post(self.chip_url(), {"note": "x"}, follow=True)
+        self.assertContains(response, "This wish is free again.")
+        self.assertEqual(Contribution.objects.count(), 0)
+
+    def test_stop_chipping_in(self):
+        Contribution.objects.create(claim=self.claim, user=self.kim)
+        self.client.force_login(self.kim)
+        response = self.client.post(self.action_url("leave"), {"next": self.event_url()})
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(Contribution.objects.count(), 0)
+        self.assertEqual(self.client.post(self.action_url("leave")).status_code, 404)
+
+
+class PurchasedReleaseTests(ChipInScenario, TestCase):
+    def setUp(self):
+        self.build_chip_in()
+
+    def test_purchased_is_shown_to_others(self):
+        self.client.force_login(self.bob)
+        response = self.client.post(self.action_url("purchased"))
+        self.assertEqual(response.status_code, 302)
+        self.claim.refresh_from_db()
+        self.assertEqual(self.claim.status, Claim.Status.PURCHASED)
+        self.client.force_login(self.carol)
+        page = self.client.get(self.event_url())
+        self.assertContains(page, "Purchased")
+        self.assertContains(page, "Purchased by Bob")
+        self.assertNotContains(page, "Taken by Bob")
+
+    def test_release_hands_over_to_earliest_contributor(self):
+        Contribution.objects.create(claim=self.claim, user=self.kim, note="early")
+        Contribution.objects.create(claim=self.claim, user=self.lea, note="late")
+        self.claim.status = Claim.Status.PURCHASED
+        self.claim.save()
+        self.client.force_login(self.bob)
+        self.client.post(self.action_url("release"))
+        claim = Claim.objects.get()
+        self.assertEqual(claim.claimer, self.kim)
+        self.assertEqual(claim.status, Claim.Status.RESERVED)
+        self.assertEqual(list(Contribution.objects.values_list("user__username", flat=True)), ["lea"])
+
+    def test_release_without_contributors_frees_the_wish(self):
+        self.client.force_login(self.bob)
+        self.client.post(self.action_url("release"))
+        self.assertEqual(Claim.objects.count(), 0)
+        self.client.force_login(self.carol)
+        self.assertContains(self.client.get(self.event_url()), "get this")
+
+    def test_uniform_404_for_everyone_else(self):
+        self.client.force_login(self.bob)
+        baseline = self.client.post(self.action_url("release", wish_pk=999999)).content
+        Contribution.objects.create(claim=self.claim, user=self.kim)
+        for with_claim in (True, False):
+            if not with_claim:
+                Contribution.objects.all().delete()
+                Claim.objects.all().delete()
+            for user in (self.anna, self.carol, self.dave):
+                self.client.force_login(user)
+                for action in ("purchased", "release", "leave"):
+                    response = self.client.post(self.action_url(action))
+                    self.assertEqual(response.status_code, 404, (user, action))
+                    self.assertEqual(response.content, baseline)
+        self.assertEqual(Claim.objects.count(), 0)
+
+    def test_nothing_changes_for_probes_with_a_claim(self):
+        Contribution.objects.create(claim=self.claim, user=self.kim)
+        for user in (self.anna, self.carol, self.dave):
+            self.client.force_login(user)
+            for action in ("purchased", "release", "leave"):
+                self.client.post(self.action_url(action))
+        claim = Claim.objects.get()
+        self.assertEqual((claim.claimer, claim.status), (self.bob, Claim.Status.RESERVED))
+        self.assertEqual(Contribution.objects.count(), 1)
+
+    def test_updated_at_never_changes(self):
+        before = Wish.objects.get(pk=self.wish.pk).updated_at
+        self.client.force_login(self.kim)
+        self.client.post(self.chip_url(), {"note": "x"})
+        self.client.post(self.action_url("leave"))
+        self.client.post(self.chip_url(), {"note": "x"})
+        self.client.force_login(self.bob)
+        self.client.post(self.action_url("purchased"))
+        self.client.post(self.action_url("release"))
+        self.assertEqual(Wish.objects.get(pk=self.wish.pk).updated_at, before)
+
+    def test_next_is_followed_only_when_same_host(self):
+        self.client.force_login(self.bob)
+        target = f"/events/{self.e1.pk}/#wish-{self.wish.pk}"
+        response = self.client.post(self.action_url("purchased"), {"next": target})
+        self.assertEqual(response["Location"], target)
+        response = self.client.post(self.action_url("purchased"), {"next": "https://evil.example/x"})
+        self.assertNotIn("evil.example", response["Location"])
+
+    def test_chip_in_get_is_405(self):
+        self.client.force_login(self.kim)
+        for url in (self.chip_url(), self.action_url("purchased"), self.action_url("release"), self.action_url("leave")):
+            self.assertEqual(self.client.get(url).status_code, 405, url)
+
+    def test_chip_in_uniform_404(self):
+        self.client.force_login(self.kim)
+        baseline = self.client.post(self.chip_url(wish_pk=999999)).content
+        for user in (self.anna, self.dave):
+            self.client.force_login(user)
+            response = self.client.post(self.chip_url(), {"note": "x"})
+            self.assertEqual(response.status_code, 404)
+            self.assertEqual(response.content, baseline)
+        self.assertEqual(Contribution.objects.count(), 0)
+
+    def test_at_most_one_claim_per_wish_and_never_the_owner(self):
+        Contribution.objects.create(claim=self.claim, user=self.kim)
+        self.client.force_login(self.bob)
+        self.client.post(self.action_url("release"))
+        for claim in Claim.objects.all():
+            self.assertNotEqual(claim.claimer_id, claim.wish.owner_id)
+        self.assertEqual(Claim.objects.filter(wish=self.wish).count(), 1)
