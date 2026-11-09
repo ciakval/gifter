@@ -10,8 +10,9 @@ from dataclasses import dataclass
 
 from django.db import IntegrityError, transaction
 from django.db.models import Prefetch
+from django.utils import timezone
 
-from .models import Claim, Contribution, Membership
+from .models import Claim, Contribution, Membership, Wish
 
 CLAIMED = "claimed"
 ALREADY_YOURS = "already_yours"
@@ -48,6 +49,7 @@ class ClaimView:
     contributors: tuple[Person, ...] = ()
     i_contribute: bool = False
     can_chip_in: bool = False
+    changed: bool = False
 
 
 def _ordered_contributions():
@@ -86,24 +88,33 @@ def claim_views_for(viewer, wishes) -> dict[int, ClaimView]:
         return {}
     claims = (
         Claim.objects.filter(wish__in=wishes)
-        .select_related("claimer")
+        .select_related("claimer", "wish")
         .prefetch_related(_ordered_contributions())
     )
     visible = co_member_ids(viewer)
-    views = {}
-    for claim in claims:
-        contributions = list(claim.contributions.all())
-        is_mine = claim.claimer_id == viewer.pk
-        i_contribute = any(c.user_id == viewer.pk for c in contributions)
-        views[claim.wish_id] = ClaimView(
-            is_purchased=claim.status == Claim.Status.PURCHASED,
-            claimer=_person(claim.claimer, viewer, visible),
-            is_mine=is_mine,
-            contributors=tuple(_person(c.user, viewer, visible, c.note) for c in contributions),
-            i_contribute=i_contribute,
-            can_chip_in=not is_mine and not i_contribute,
-        )
-    return views
+    return {claim.wish_id: _claim_view(claim, viewer, visible) for claim in claims}
+
+
+def _claim_view(claim, viewer, visible) -> ClaimView:
+    """One claim as `viewer` may see it. `claim.wish` and ordered contributions are preloaded."""
+    contributions = list(claim.contributions.all())
+    is_mine = claim.claimer_id == viewer.pk
+    mine = next((c for c in contributions if c.user_id == viewer.pk), None)
+    acknowledged_at = claim.acknowledged_at if is_mine else mine.acknowledged_at if mine else None
+    changed = (
+        acknowledged_at is not None
+        and claim.wish.status == Wish.Status.ACTIVE
+        and claim.wish.updated_at > acknowledged_at
+    )
+    return ClaimView(
+        is_purchased=claim.status == Claim.Status.PURCHASED,
+        claimer=_person(claim.claimer, viewer, visible),
+        is_mine=is_mine,
+        contributors=tuple(_person(c.user, viewer, visible, c.note) for c in contributions),
+        i_contribute=mine is not None,
+        can_chip_in=not is_mine and mine is None,
+        changed=changed,
+    )
 
 
 def claim_wish(user, wish) -> str:
@@ -174,3 +185,71 @@ def release_claim(user, wish_pk) -> str | None:
 def leave_contribution(user, wish_pk) -> bool:
     deleted, _by_model = Contribution.objects.filter(claim__wish_id=wish_pk, user=user).delete()
     return deleted > 0
+
+
+def acknowledge(user, wish_pk) -> bool:
+    """"Got it": the user has seen the owner's latest edit (D-08)."""
+    now = timezone.now()
+    updated = Claim.objects.filter(wish_id=wish_pk, claimer=user).update(acknowledged_at=now)
+    updated += Contribution.objects.filter(claim__wish_id=wish_pk, user=user).update(
+        acknowledged_at=now
+    )
+    return updated > 0
+
+
+ROLE_CLAIMER = "claimer"
+ROLE_CONTRIBUTOR = "contributor"
+_STATE_RANK = {"active": 0, "withdrawn": 1, "received": 2}
+
+
+@dataclass(frozen=True)
+class MyClaimRow:
+    wish: Wish
+    owner_name: str
+    role: str
+    view: ClaimView
+    state: str
+
+
+def my_claims_for(viewer) -> list[MyClaimRow]:
+    """Everything the viewer claimed or chipped in on, whatever the wish's current sharing (D-05).
+
+    Queries go straight to Claim and Contribution by user, never through event visibility, so
+    un-shared, withdrawn and received wishes stay listed. A giftee is never involved with their
+    own wish; the exclusions are belt and braces.
+    """
+    visible = co_member_ids(viewer)
+    ordered = _ordered_contributions()
+    own_claims = (
+        Claim.objects.filter(claimer=viewer)
+        .exclude(wish__owner=viewer)
+        .select_related("wish__owner", "claimer")
+        .prefetch_related(ordered)
+    )
+    own_contributions = (
+        Contribution.objects.filter(user=viewer)
+        .exclude(claim__wish__owner=viewer)
+        .select_related("claim__wish__owner", "claim__claimer")
+        .prefetch_related(Prefetch("claim__contributions", queryset=ordered.queryset))
+    )
+    keyed = []
+    for claim in own_claims:
+        keyed.append((claim.created_at, claim.pk, ROLE_CLAIMER, claim))
+    for contribution in own_contributions:
+        keyed.append(
+            (contribution.created_at, contribution.pk, ROLE_CONTRIBUTOR, contribution.claim)
+        )
+    rows = []
+    for _when, _pk, role, claim in sorted(keyed, key=lambda k: (k[0], k[1]), reverse=True):
+        rows.append(
+            MyClaimRow(
+                wish=claim.wish,
+                owner_name=claim.wish.owner.display_name,
+                role=role,
+                view=_claim_view(claim, viewer, visible),
+                state=claim.wish.status,
+            )
+        )
+    # Stable sort: active, withdrawn, received; newest involvement first inside each group.
+    rows.sort(key=lambda row: _STATE_RANK.get(row.state, 0))
+    return rows

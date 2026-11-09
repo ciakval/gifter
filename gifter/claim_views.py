@@ -2,7 +2,7 @@
 
 from django.contrib import messages
 from django.http import Http404
-from django.shortcuts import redirect
+from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.translation import gettext as _
@@ -37,7 +37,7 @@ def _participant_wish_or_404(user, event_pk, wish_pk):
     return event, wish
 
 
-FALLBACK = "home"
+FALLBACK = "my_claims"
 
 
 def _back(request, fallback_name):
@@ -106,3 +106,14 @@ def chip_in_leave(request, wish_pk):
         raise Http404()
     messages.success(request, _("You stopped chipping in."))
     return _back(request, FALLBACK)
+
+
+@require_POST
+def claim_ack(request, wish_pk):
+    if not claims.acknowledge(request.user, wish_pk):
+        raise Http404()
+    return _back(request, FALLBACK)
+
+
+def my_claims(request):
+    return render(request, "gifter/my_claims.html", {"rows": claims.my_claims_for(request.user)})

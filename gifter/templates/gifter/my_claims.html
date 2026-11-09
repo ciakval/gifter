@@ -1,0 +1,82 @@
+{% extends "gifter/base.html" %}
+{% load i18n %}
+{% block head_title %}{% translate "My claims" %} - Gifter{% endblock %}
+
+{% block content %}
+<h1 class="h3 mb-3">{% translate "My claims" %}</h1>
+{% for row in rows %}
+  {% with wish=row.wish claim=row.view %}
+  <div class="card mb-3" id="wish-{{ wish.pk }}">
+    <div class="card-body">
+      <div class="fw-semibold">{{ wish.name }}
+        <span class="badge text-bg-secondary">{{ wish.get_priority_display }}</span>
+        {% if row.state == "received" %}<span class="badge text-bg-success">{% translate "Received" %}</span>
+        {% elif claim.is_purchased %}<span class="badge text-bg-success">{% translate "Purchased" %}</span>
+        {% else %}<span class="badge text-bg-warning">{% translate "Taken" %}</span>{% endif %}
+      </div>
+      <div class="small text-body-secondary">{% blocktranslate with name=row.owner_name %}For {{ name }}{% endblocktranslate %}</div>
+      {% if wish.description %}<div>{{ wish.description|linebreaksbr }}</div>{% endif %}
+      {% if wish.link_items %}
+        <div class="small">{% for link in wish.link_items %}<a href="{{ link.url }}" target="_blank" rel="noopener noreferrer nofollow">{{ link.domain }}</a>{% if not forloop.last %}, {% endif %}{% endfor %}</div>
+      {% endif %}
+      <div class="small text-body-secondary mt-1">
+        {% if claim.is_mine %}{% translate "You are getting this." %}
+        {% elif claim.claimer.name %}{% if claim.is_purchased %}{% blocktranslate with name=claim.claimer.name %}Purchased by {{ name }}{% endblocktranslate %}{% else %}{% blocktranslate with name=claim.claimer.name %}Taken by {{ name }}{% endblocktranslate %}{% endif %}
+        {% else %}{% if claim.is_purchased %}{% translate "Purchased by someone" %}{% else %}{% translate "Taken by someone" %}{% endif %}{% endif %}
+      </div>
+      {% for person in claim.contributors %}
+        <div class="small text-body-secondary">
+          {% if person.is_you %}{% if person.note %}{% blocktranslate with note=person.note %}You are chipping in: {{ note }}{% endblocktranslate %}{% else %}{% translate "You are chipping in." %}{% endif %}
+          {% elif person.name %}{% if person.note %}{% blocktranslate with name=person.name note=person.note %}{{ name }} is chipping in: {{ note }}{% endblocktranslate %}{% else %}{% blocktranslate with name=person.name %}{{ name }} is chipping in.{% endblocktranslate %}{% endif %}
+          {% else %}{% translate "Someone is chipping in." %}{% endif %}
+        </div>
+      {% endfor %}
+
+      {% if row.state == "withdrawn" %}
+        <div class="alert alert-secondary mt-2 mb-2" role="status">{% translate "Withdrawn by the owner" %}</div>
+        <form method="post" action="{% if row.role == 'claimer' %}{% url 'claim_release' wish.pk %}{% else %}{% url 'chip_in_leave' wish.pk %}{% endif %}">
+          {% csrf_token %}
+          <input type="hidden" name="next" value="{% url 'my_claims' %}">
+          <button type="submit" class="btn btn-outline-secondary">{% translate "Remove from my claims" %}</button>
+        </form>
+      {% elif row.state == "active" %}
+        {% if claim.changed %}
+          <div class="mt-2 d-flex flex-wrap align-items-center gap-2">
+            <span class="badge text-bg-info">{% if row.role == "claimer" %}{% translate "Changed since you claimed" %}{% else %}{% translate "Changed since you chipped in" %}{% endif %}</span>
+            <form method="post" action="{% url 'claim_ack' wish.pk %}">
+              {% csrf_token %}
+              <input type="hidden" name="next" value="{% url 'my_claims' %}">
+              <button type="submit" class="btn btn-outline-secondary btn-sm">{% translate "Got it" %}</button>
+            </form>
+          </div>
+        {% endif %}
+        <div class="d-flex flex-wrap gap-2 mt-2">
+          {% if row.role == "claimer" %}
+            {% if not claim.is_purchased %}
+              <form method="post" action="{% url 'claim_purchased' wish.pk %}">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{% url 'my_claims' %}">
+                <button type="submit" class="btn btn-primary">{% translate "Mark purchased" %}</button>
+              </form>
+            {% endif %}
+            <form method="post" action="{% url 'claim_release' wish.pk %}">
+              {% csrf_token %}
+              <input type="hidden" name="next" value="{% url 'my_claims' %}">
+              <button type="submit" class="btn btn-outline-secondary">{% translate "Release" %}</button>
+            </form>
+          {% else %}
+            <form method="post" action="{% url 'chip_in_leave' wish.pk %}">
+              {% csrf_token %}
+              <input type="hidden" name="next" value="{% url 'my_claims' %}">
+              <button type="submit" class="btn btn-outline-secondary">{% translate "Stop chipping in" %}</button>
+            </form>
+          {% endif %}
+        </div>
+      {% endif %}
+    </div>
+  </div>
+  {% endwith %}
+{% empty %}
+  <p class="text-body-secondary">{% translate "You have not claimed or chipped in on anything yet." %}</p>
+{% endfor %}
+{% endblock %}

@@ -16,6 +16,16 @@ owner pages: it renders claim state, which the giftee must never see.
       {% elif claim.claimer.name %}{% if claim.is_purchased %}{% blocktranslate with name=claim.claimer.name %}Purchased by {{ name }}{% endblocktranslate %}{% else %}{% blocktranslate with name=claim.claimer.name %}Taken by {{ name }}{% endblocktranslate %}{% endif %}
       {% else %}{% if claim.is_purchased %}{% translate "Purchased by someone" %}{% else %}{% translate "Taken by someone" %}{% endif %}{% endif %}
     </div>
+    {% if claim.changed %}
+      <div class="mt-1 d-flex flex-wrap align-items-center gap-2">
+        <span class="badge text-bg-info">{% if claim.is_mine %}{% translate "Changed since you claimed" %}{% else %}{% translate "Changed since you chipped in" %}{% endif %}</span>
+        <form method="post" action="{% url 'claim_ack' wish.pk %}">
+          {% csrf_token %}
+          <input type="hidden" name="next" value="{% url 'event_detail' event.pk %}#wish-{{ wish.pk }}">
+          <button type="submit" class="btn btn-outline-secondary btn-sm">{% translate "Got it" %}</button>
+        </form>
+      </div>
+    {% endif %}
     {% for person in claim.contributors %}
       <div class="small text-body-secondary">
         {% if person.is_you %}{% if person.note %}{% blocktranslate with note=person.note %}You are chipping in: {{ note }}{% endblocktranslate %}{% else %}{% translate "You are chipping in." %}{% endif %}

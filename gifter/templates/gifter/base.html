@@ -19,6 +19,7 @@
         <ul class="navbar-nav me-auto">
           <li class="nav-item"><a class="nav-link" href="{% url 'home' %}">{% translate "Events" %}</a></li>
           <li class="nav-item"><a class="nav-link" href="{% url 'wishlist' %}">{% translate "My wishlist" %}</a></li>
+          <li class="nav-item"><a class="nav-link" href="{% url 'my_claims' %}">{% translate "My claims" %}</a></li>
         </ul>
         <form method="post" action="{% url 'account_logout' %}" class="d-flex">
           {% csrf_token %}
