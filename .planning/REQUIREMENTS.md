@@ -40,17 +40,17 @@ Requirements for the Christmas 2026 release. Each maps to roadmap phases.
 ### Browse & Claim
 
 - [x] **CLAM-01**: Member can browse other members' wishes in an event, grouped by person
-- [ ] **CLAM-02**: Member can claim a wish; only one claimer at a time, and a simultaneous second claim is rejected with "someone just took it"
-- [ ] **CLAM-03**: A claimed wish shows as taken in every event it is shared into; the claimer's/contributors' names are visible only to viewers who share at least one event with that person
-- [ ] **CLAM-04**: Other members can chip in on a claimed wish, with an optional free-text note (no money handling)
-- [ ] **CLAM-05**: Claimer can release their claim; if contributors exist, the earliest contributor becomes the claimer
-- [ ] **CLAM-06**: Claimer can mark a claim as purchased (vs. reserved), visible to other non-giftee viewers
-- [ ] **CLAM-07**: User has a "My claims" page listing everything they claimed or chipped in on, across events
-- [ ] **CLAM-08**: Claimer sees when a claimed wish was edited after they claimed it, or withdrawn by its owner
+- [x] **CLAM-02**: Member can claim a wish; only one claimer at a time, and a simultaneous second claim is rejected with "someone just took it"
+- [x] **CLAM-03**: A claimed wish shows as taken in every event it is shared into; the claimer's/contributors' names are visible only to viewers who share at least one event with that person
+- [x] **CLAM-04**: Other members can chip in on a claimed wish, with an optional free-text note (no money handling)
+- [x] **CLAM-05**: Claimer can release their claim; if contributors exist, the earliest contributor becomes the claimer
+- [x] **CLAM-06**: Claimer can mark a claim as purchased (vs. reserved), visible to other non-giftee viewers
+- [x] **CLAM-07**: User has a "My claims" page listing everything they claimed or chipped in on, across events
+- [x] **CLAM-08**: Claimer sees when a claimed wish was edited after they claimed it, or withdrawn by its owner
 
 ### Secrecy
 
-- [ ] **SECR-01**: A giftee can never see claims, contributors, purchase status or claim-derived hints on their own wishes — via pages, URLs, error messages, ordering or timestamps
+- [x] **SECR-01**: A giftee can never see claims, contributors, purchase status or claim-derived hints on their own wishes — via pages, URLs, error messages, ordering or timestamps
 - [ ] **SECR-02**: Automated tests prove SECR-01 (sentinel-name crawl of every route as the giftee; owner pages identical with and without a claim; non-member/owner probes get uniform 404)
 
 ### Lifecycle
@@ -133,14 +133,14 @@ Which phases cover which requirements. Updated during roadmap creation.
 | WISH-03 | Phase 2 | Complete |
 | WISH-04 | Phase 2 | Complete |
 | CLAM-01 | Phase 2 | Complete |
-| CLAM-02 | Phase 3 | Pending |
-| CLAM-03 | Phase 3 | Pending |
-| CLAM-04 | Phase 3 | Pending |
-| CLAM-05 | Phase 3 | Pending |
-| CLAM-06 | Phase 3 | Pending |
-| CLAM-07 | Phase 3 | Pending |
-| CLAM-08 | Phase 3 | Pending |
-| SECR-01 | Phase 3 | Pending |
+| CLAM-02 | Phase 3 | Complete |
+| CLAM-03 | Phase 3 | Complete |
+| CLAM-04 | Phase 3 | Complete |
+| CLAM-05 | Phase 3 | Complete |
+| CLAM-06 | Phase 3 | Complete |
+| CLAM-07 | Phase 3 | Complete |
+| CLAM-08 | Phase 3 | Complete |
+| SECR-01 | Phase 3 | Complete |
 | SECR-02 | Phase 3 | Pending |
 | LIFE-01 | Phase 3 | Pending |
 | LIFE-02 | Phase 3 | Pending |

@@ -103,11 +103,11 @@ Plans:
   4. From no page, URL, error message, ordering or timestamp can the giftee tell whether their wishes are claimed. Their pages are identical with and without claims. A sentinel-name crawl as the giftee, an owner-page diff and uniform-404 probe tests run in CI and block deploys when they fail.
   5. A giftee can mark a wish as received. It then leaves the active list everywhere and moves into a collapsed "Received" section without revealing the giver. The giftee can also reopen it.
 
-**Plans:** 2 plans
+**Plans:** 1/2 plans executed
 
 Plans:
 **Wave 1**
-- [ ] 03-01-PLAN.md — Secret claims tracer and expansion: Claim/Contribution + received status in one additive migration, claim with race handling and the cross-event names rule, chip-in with note, mark purchased, release with hand-over, My claims (un-shared, withdrawn, received, changed-since-claimed + Got it), My claims nav link, early secrecy guards
+- [x] 03-01-PLAN.md — Secret claims tracer and expansion: Claim/Contribution + received status in one additive migration, claim with race handling and the cross-event names rule, chip-in with note, mark purchased, release with hand-over, My claims (un-shared, withdrawn, received, changed-since-claimed + Got it), My claims nav link, early secrecy guards
 
 **Wave 2** *(blocked on Wave 1 completion)*
 - [ ] 03-02-PLAN.md — Received flow (Received button, collapsed Received section, Reopen), full secrecy suite (route inventory guard, sentinel crawl, byte-identical GET/POST snapshots, uniform-404 matrix, owner-view query capture), privacy policy for claims with date gate, smoke check for /claims/
@@ -139,5 +139,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 |-------|----------------|--------|-----------|
 | 1. Google Sign-in Live | 8/8 | In Progress | - |
 | 2. Events, Wishlists & Browsing | 2/2 | In Progress | - |
-| 3. Secret Claims & Gift Lifecycle | 0/TBD | Not started | - |
+| 3. Secret Claims & Gift Lifecycle | 1/2 | In Progress | - |
 | 4. Family Launch | 0/TBD | Not started | - |

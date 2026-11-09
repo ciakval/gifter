@@ -3,16 +3,16 @@ gsd_state_version: "1.0"
 current_phase: 3
 current_phase_name: Secret Claims & Gift Lifecycle
 status: executing
-stopped_at: Completed 02-02-PLAN.md
-last_updated: "2026-11-09T18:30:02.732Z"
-last_activity: 2026-11-08
-last_activity_desc: Phase 2 execution started
-state_head: 95a3ce7be81751a47497d5895dd1cfe575f9fecd
+stopped_at: Completed 03-01-PLAN.md
+last_updated: "2026-11-09T18:36:35.902Z"
+last_activity: 2026-11-09
+last_activity_desc: Phase 3 execution started
+state_head: 561e818bcd4820a3c63405fecebac3c1cc10a11b
 progress:
   total_phases: 4
   completed_phases: 0
   total_plans: 12
-  completed_plans: 10
+  completed_plans: 11
   percent: 0
 ---
 
@@ -23,14 +23,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-10-16)
 
 **Core value:** Participants in an event can see what someone wishes for and coordinate who buys what — without the giftee ever finding out who claimed what.
-**Current focus:** Phase 2 — Events, Wishlists & Browsing
+**Current focus:** Phase 3 — Secret Claims & Gift Lifecycle
 
 ## Current Position
 
-Phase: 3 (Secret Claims & Gift Lifecycle) — READY TO EXECUTE
+Phase: 3 (Secret Claims & Gift Lifecycle) — EXECUTING
 Plan: 2 of 2
 Status: Ready to execute
-Last activity: 2026-11-08 — Phase 2 execution started
+Last activity: 2026-11-09 — Phase 3 execution started
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -66,6 +66,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 01 P08 | multi-session | 3 tasks | 0 files |
 | Phase 02 P01 | 8min | 2 tasks | 16 files |
 | Phase 02 P02 | 12min | 3 tasks | 17 files |
+| Phase 03 P01 | 6min | 3 tasks | 15 files |
 
 ## Accumulated Context
 
@@ -95,6 +96,9 @@ Recent decisions affecting current work:
 - [Phase 02]: Event.created_by is SET_NULL so account deletion never blocks on events
 - [Phase 02]: Landing never follows next into the admin path (avoids redirect loop with admin login redirect); invite visits by anonymous users always store token and redirect
 - [Phase 02]: Wish links stored as a newline-separated normalized TextField; delete is a soft delete (status withdrawn) with shares kept
+- [Phase 03]: 03-01: A claimer never also chips in; release hands over to the earliest contribution by (created_at, pk) and carries its acknowledged_at
+- [Phase 03]: 03-01: Contributors also get the Changed marker; share-only owner edits do not bump wish.updated_at
+- [Phase 03]: 03-01: Owner pages are checked for claim-state markers (top bar removed), not the bare word claim (D-14 as amended)
 
 ### Pending Todos
 
@@ -128,6 +132,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-11-08T19:21:07.568Z
-Stopped at: Completed 02-02-PLAN.md
+Last session: 2026-11-09T18:36:35.804Z
+Stopped at: Completed 03-01-PLAN.md
 Resume file: None
