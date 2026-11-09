@@ -1,5 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
+from django.core.exceptions import FieldDoesNotExist
+from django.db.models.constants import LOOKUP_SEP
 from django.utils.translation import gettext_lazy as _
 
 # Import allauth's admin modules explicitly so their registrations exist before we unregister
@@ -29,6 +31,22 @@ class GifterUserAdmin(UserAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return False
+
+    def lookup_allowed(self, lookup, value, request):
+        """Refuse list filters on reverse relations of User (SECR-01, T-03-19).
+
+        ?claims__isnull=False, ?contributions__isnull=False or ?claims=<pk> would narrow the
+        user list to the people who claimed or chipped in. Django answers a refused lookup with
+        a 400 for every value. The list_filter fields and the search box are unaffected.
+        """
+        first = lookup.split(LOOKUP_SEP)[0]
+        try:
+            field = self.model._meta.get_field(first)
+        except FieldDoesNotExist:
+            return super().lookup_allowed(lookup, value, request)
+        if field.auto_created and not field.concrete:
+            return False
+        return super().lookup_allowed(lookup, value, request)
 
 
 admin.site.register(User, GifterUserAdmin)

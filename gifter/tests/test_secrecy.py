@@ -30,6 +30,7 @@ it injects a leak into the owner card through a test-only template override and 
 very same detectors report it.
 """
 
+import contextlib
 import copy
 import re
 from pathlib import Path
@@ -55,7 +56,11 @@ from allauth.account.models import EmailAddress
 from allauth.socialaccount.models import SocialAccount
 
 from gifter import claims
-from gifter.admin import GifterUserAdmin
+from gifter.admin import (
+    GifterUserAdmin,
+    ReadOnlyEmailAddressAdmin,
+    ReadOnlySocialAccountAdmin,
+)
 from gifter.models import Claim, Contribution, Wish
 from gifter.tests.helpers import claim_state_markers, mask_csrf
 from gifter.tests.test_events import join, make_event, make_user
@@ -813,6 +818,20 @@ class StaffGifteeTests(SecrecyMixin, TestCase):
                     snapshot(self.fx, probe, False), snapshot(self.fx, probe, True)
                 )
 
+    def test_reverse_relation_filters_are_refused_and_builtin_filters_work(self):
+        client = fresh_client(self.fx.gita)
+        with with_claims(self.fx):
+            for relation in get_user_model()._meta.related_objects:
+                for query in (f"{relation.name}__isnull=False", f"{relation.name}=2"):
+                    with self.subTest(query=query):
+                        response = client.get(f"/gifter-admin/gifter/user/?{query}")
+                        self.assertEqual(response.status_code, 400)
+            group = Group.objects.get()
+            for query in ("is_staff__exact=1", f"groups__id__exact={group.pk}", "q=sam"):
+                with self.subTest(query=query):
+                    response = client.get(f"/gifter-admin/gifter/user/?{query}")
+                    self.assertEqual(response.status_code, 200)
+
     def test_staff_pass_reaches_real_admin_pages(self):
         fx = self.fx
         found = staff_probes(fx)
@@ -859,7 +878,18 @@ class StaffGifteeTests(SecrecyMixin, TestCase):
         self.assertEqual(snapshot_findings(fx, deletes), [])
         self.assertEqual(snapshot_findings(fx, lookups), [])
 
-        with mock.patch.object(GifterUserAdmin, "has_delete_permission", return_value=True):
+        # Admin deletion reopened for all three admins that take part in a user's deletion
+        # summary. The identity admins matter: while they deny delete, a user who has Google
+        # rows gets a plain "cannot delete" page that names no claim, a second layer that would
+        # otherwise hide a reopened GifterUserAdmin for the fixture users that have such rows.
+        with contextlib.ExitStack() as stack:
+            stack.enter_context(
+                mock.patch.object(GifterUserAdmin, "has_delete_permission", return_value=True)
+            )
+            for admin_class in (ReadOnlySocialAccountAdmin, ReadOnlyEmailAddressAdmin):
+                stack.enter_context(
+                    mock.patch.object(admin_class, "has_delete_permission", return_value=True)
+                )
             self.assertCountEqual(
                 snapshot_findings(fx, deletes), [p.label for p in deletes]
             )

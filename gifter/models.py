@@ -159,7 +159,8 @@ class Claim(models.Model):
         verbose_name_plural = _("claims")
 
     def __str__(self):
-        return self.wish.name
+        # Never the wish name: a listing or log line must not name a giftee's claimed wish.
+        return gettext("Claim %(pk)s") % {"pk": self.pk}
 
 
 class Contribution(models.Model):
@@ -189,4 +190,5 @@ class Contribution(models.Model):
         ]
 
     def __str__(self):
-        return self.claim.wish.name
+        # Never the wish name (see Claim.__str__).
+        return gettext("Contribution %(pk)s") % {"pk": self.pk}
