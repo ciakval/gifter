@@ -15,7 +15,23 @@ from .models import User
 admin.site.site_header = _("Gifter admin")
 admin.site.site_title = _("Gifter admin")
 
-admin.site.register(User, UserAdmin)
+
+
+class GifterUserAdmin(UserAdmin):
+    """Users can be viewed and edited here, never deleted (SECR-01, T-03-18).
+
+    The delete confirmation lists every row a deletion would take with it, including rows of
+    models that are not registered (Claim and Contribution), shown by their string form. The
+    author is staff and also a giftee, so that page would tell him who claimed his wishes.
+    Denying delete also removes the delete_selected bulk action. People are deleted with
+    ``manage.py delete_user``, whose output does not depend on claims.
+    """
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
+admin.site.register(User, GifterUserAdmin)
 
 # Google credentials live only in settings. A SocialApp row on top of settings APPS raises
 # MultipleObjectsReturned on every sign-in, and tokens are never stored.
@@ -24,10 +40,9 @@ admin.site.unregister(SocialToken)
 
 
 class ReadOnlySocialAccountAdmin(allauth_socialaccount_admin.SocialAccountAdmin):
-    """View and delete only: editing a social account would forge an identity.
+    """View only: editing would forge an identity, deleting would break someone's sign-in.
 
-    Delete stays allowed because deleting a User cascades to these rows, and Django blocks the
-    deletion if a registered related model denies delete.
+    The rows are removed together with their user by ``manage.py delete_user``.
     """
 
     def has_add_permission(self, request):
@@ -36,9 +51,16 @@ class ReadOnlySocialAccountAdmin(allauth_socialaccount_admin.SocialAccountAdmin)
     def has_change_permission(self, request, obj=None):
         return False
 
+    def has_delete_permission(self, request, obj=None):
+        return False
+
 
 class ReadOnlyEmailAddressAdmin(allauth_account_admin.EmailAddressAdmin):
-    """View and delete only; the make_verified action is dropped (it forges verification)."""
+    """View only: editing would forge an identity, deleting would break someone's sign-in.
+
+    The make_verified action is dropped (it forges verification). The rows are removed together
+    with their user by ``manage.py delete_user``.
+    """
 
     actions = []
 
@@ -48,6 +70,9 @@ class ReadOnlyEmailAddressAdmin(allauth_account_admin.EmailAddressAdmin):
     def has_change_permission(self, request, obj=None):
         return False
 
+    def has_delete_permission(self, request, obj=None):
+        return False
+
 
 admin.site.unregister(SocialAccount)
 admin.site.register(SocialAccount, ReadOnlySocialAccountAdmin)
@@ -55,4 +80,5 @@ admin.site.unregister(EmailAddress)
 admin.site.register(EmailAddress, ReadOnlyEmailAddressAdmin)
 
 # Deliberately NOT registered: Wish and any claim or contribution model. The author is staff
-# and also a giftee, and must never see who claimed his wishes (SECR-01).
+# and also a giftee, and must never see who claimed his wishes (SECR-01). For the same reason
+# deleting a user is denied in the admin: the deletion summary would list the Claim rows.

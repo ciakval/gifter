@@ -191,6 +191,20 @@ class AdminLockdownTests(TestCase):
         ):
             with self.subTest(path=path):
                 self.assertEqual(self.client.get(path).status_code, 403)
+        account = SocialAccount.objects.get()
+        address = EmailAddress.objects.get()
+        for path in (
+            f"/gifter-admin/socialaccount/socialaccount/{account.pk}/delete/",
+            f"/gifter-admin/account/emailaddress/{address.pk}/delete/",
+        ):
+            with self.subTest(path=path):
+                self.assertEqual(self.client.get(path).status_code, 403)
+        for path in (
+            "/gifter-admin/socialaccount/socialaccount/",
+            "/gifter-admin/account/emailaddress/",
+        ):
+            with self.subTest(path=path):
+                self.assertNotContains(self.client.get(path), 'value="delete_selected"')
 
     def test_social_account_change_page_has_no_save_button(self):
         make_google_user("anna", "anna@example.com", "1234567890")
@@ -199,16 +213,25 @@ class AdminLockdownTests(TestCase):
         self.assertEqual(page.status_code, 200)
         self.assertNotContains(page, 'name="_save"')
 
-    def test_deleting_a_user_with_google_account_still_works(self):
+    def test_user_delete_is_refused_and_not_offered(self):
+        # Supersedes the 01-07 WR-04 must-have that an admin user deletion works (03-03, SECR-01):
+        # the delete confirmation lists Claim rows, so people are deleted with delete_user.
         anna = make_google_user("anna", "anna@example.com", "1234567890")
         url = f"/gifter-admin/gifter/user/{anna.pk}/delete/"
-        confirm = self.client.get(url)
-        self.assertEqual(confirm.status_code, 200)
-        self.assertNotContains(confirm, "permission to delete")
-        self.client.post(url, {"post": "yes"})
-        self.assertFalse(get_user_model().objects.filter(pk=anna.pk).exists())
-        self.assertEqual(SocialAccount.objects.count(), 0)
-        self.assertEqual(EmailAddress.objects.count(), 0)
+        self.assertEqual(self.client.get(url).status_code, 403)
+        self.assertEqual(self.client.post(url, {"post": "yes"}).status_code, 403)
+        listing = self.client.post(
+            "/gifter-admin/gifter/user/",
+            {"action": "delete_selected", "_selected_action": [anna.pk], "post": "yes"},
+        )
+        self.assertNotContains(listing, 'value="delete_selected"')
+        self.assertTrue(get_user_model().objects.filter(pk=anna.pk).exists())
+        self.assertEqual(SocialAccount.objects.count(), 1)
+        self.assertEqual(EmailAddress.objects.count(), 1)
+        self.assertNotContains(self.client.get("/gifter-admin/gifter/user/"), 'value="delete_selected"')
+        self.assertNotContains(
+            self.client.get(f"/gifter-admin/gifter/user/{anna.pk}/change/"), url
+        )
 
     def test_dangerous_and_secret_models_are_not_registered(self):
         for model in (SocialApp, SocialToken, Wish, Claim, Contribution):
