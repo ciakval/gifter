@@ -151,4 +151,13 @@ case "$loc" in
   *) fail "(m) GET /invite/smoke-not-a-token/ Location was '$loc', expected /?next=/invite/smoke-not-a-token/" ;;
 esac
 
+# (n) My claims is never reachable signed out (stays a redirect to the landing page); prints PASS (n)
+code="$(get "$TMP/n.head" "$TMP/n.body" /claims/)"
+loc="$(header "$TMP/n.head" location)"
+[ "$code" = "302" ] || fail "(n) GET /claims/ returned $code, expected 302"
+case "$loc" in
+  "/?next=/claims/" | "$ORIGIN/?next=/claims/" | "$BASE/?next=/claims/") pass "(n) GET /claims/ signed out redirects to $loc" ;;
+  *) fail "(n) GET /claims/ Location was '$loc', expected /?next=/claims/" ;;
+esac
+
 echo "SMOKE OK"

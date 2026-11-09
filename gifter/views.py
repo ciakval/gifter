@@ -22,7 +22,7 @@ from .models import Event, Membership, Wish
 
 # Bump whenever privacy.html changes. The policy must be updated BEFORE a feature that
 # stores or shows new kinds of data ships (see DEPLOYMENT.md).
-PRIVACY_POLICY_UPDATED = datetime.date(2026, 11, 8)
+PRIVACY_POLICY_UPDATED = datetime.date(2026, 11, 9)
 
 
 def _landing_path(**params):
