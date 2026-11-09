@@ -129,6 +129,7 @@ Recent decisions affecting current work:
 |-------|-------|--------|
 | 01 | verification_deferred_human | /gsd-verify-work 01 |
 | 02 | verification_deferred_human | /gsd-verify-work 02 |
+| 03 | verification_deferred_human | /gsd-verify-work 03 |
 
 ## Deferred Items
 
