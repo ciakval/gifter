@@ -1,10 +1,25 @@
 {% load i18n %}{% comment %}
-Participant view of one wish on an event page. Phase 3 adds claim UI to this file only.
+Participant view of one wish on an event page. Included only from participant views, never from
+owner pages: it renders claim state, which the giftee must never see.
 {% endcomment %}
-<div class="mb-3">
-  <div class="fw-semibold">{{ wish.name }} <span class="badge text-bg-secondary">{{ wish.get_priority_display }}</span></div>
+<div class="mb-3" id="wish-{{ wish.pk }}">
+  <div class="fw-semibold">{{ wish.name }} <span class="badge text-bg-secondary">{{ wish.get_priority_display }}</span>
+    {% if claim %}{% if claim.is_purchased %}<span class="badge text-bg-success">{% translate "Purchased" %}</span>{% else %}<span class="badge text-bg-warning">{% translate "Taken" %}</span>{% endif %}{% endif %}
+  </div>
   {% if wish.description %}<div>{{ wish.description|linebreaksbr }}</div>{% endif %}
   {% if wish.link_items %}
     <div class="small">{% for link in wish.link_items %}<a href="{{ link.url }}" target="_blank" rel="noopener noreferrer nofollow">{{ link.domain }}</a>{% if not forloop.last %}, {% endif %}{% endfor %}</div>
+  {% endif %}
+  {% if claim %}
+    <div class="small text-body-secondary">
+      {% if claim.is_mine %}{% translate "You are getting this." %}
+      {% elif claim.claimer.name %}{% if claim.is_purchased %}{% blocktranslate with name=claim.claimer.name %}Purchased by {{ name }}{% endblocktranslate %}{% else %}{% blocktranslate with name=claim.claimer.name %}Taken by {{ name }}{% endblocktranslate %}{% endif %}
+      {% else %}{% if claim.is_purchased %}{% translate "Purchased by someone" %}{% else %}{% translate "Taken by someone" %}{% endif %}{% endif %}
+    </div>
+  {% else %}
+    <form method="post" action="{% url 'wish_claim' event.pk wish.pk %}" class="mt-2">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-primary">{% translate "I'll get this" %}</button>
+    </form>
   {% endif %}
 </div>

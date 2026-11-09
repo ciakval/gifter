@@ -26,7 +26,7 @@ from gifter.tests.test_auth import (
     GoogleRoundTripMixin,
     fake_get_access_token,
 )
-from gifter.models import Wish
+from gifter.models import Claim, Contribution, Wish
 
 
 def make_user(username, email="", **extra):
@@ -211,7 +211,7 @@ class AdminLockdownTests(TestCase):
         self.assertEqual(EmailAddress.objects.count(), 0)
 
     def test_dangerous_and_secret_models_are_not_registered(self):
-        for model in (SocialApp, SocialToken, Wish):
+        for model in (SocialApp, SocialToken, Wish, Claim, Contribution):
             with self.subTest(model=model.__name__):
                 self.assertFalse(admin.site.is_registered(model))
 

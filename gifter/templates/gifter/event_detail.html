@@ -61,8 +61,8 @@
   <div class="card mb-3">
     <div class="card-header fw-semibold">{{ card.user.display_name }}</div>
     <div class="card-body">
-      {% for wish in card.wishes %}
-        {% include "gifter/includes/member_wish.html" %}
+      {% for item in card.items %}
+        {% include "gifter/includes/member_wish.html" with wish=item.wish claim=item.claim %}
       {% empty %}
         <p class="text-body-secondary mb-0">{% translate "No wishes shared here yet." %}</p>
       {% endfor %}

@@ -15,6 +15,7 @@ from django.utils.translation import gettext as _
 from django.utils.translation import ngettext
 from django.views.decorators.http import require_POST
 
+from .claims import claim_views_for
 from .forms import EventForm, WishForm
 from .inapp import is_in_app_browser
 from .models import Event, Membership, Wish
@@ -114,18 +115,22 @@ def event_detail(request, pk):
     memberships = event.memberships.select_related("user").order_by("joined_at", "pk")
     invite_url = request.build_absolute_uri(reverse("invite", args=[event.invite_token]))
     # Participant view: other members' active wishes explicitly shared into this event.
-    shared = (
+    shared = list(
         Wish.objects.filter(
             events=event, status=Wish.Status.ACTIVE, owner__memberships__event=event
         )
         .exclude(owner=request.user)
         .order_by("priority", "-created_at", "-pk")
     )
+    # The only claim read on this page: other members' wishes, viewer excluded.
+    claim_map = claim_views_for(request.user, shared)
     by_owner = {}
     for wish in shared:
-        by_owner.setdefault(wish.owner_id, []).append(wish)
+        by_owner.setdefault(wish.owner_id, []).append(
+            {"wish": wish, "claim": claim_map.get(wish.pk)}
+        )
     member_cards = [
-        {"user": membership.user, "wishes": by_owner.get(membership.user_id, [])}
+        {"user": membership.user, "items": by_owner.get(membership.user_id, [])}
         for membership in memberships
         if membership.user_id != request.user.pk
     ]

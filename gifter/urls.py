@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import views
+from . import claim_views, views
 
 urlpatterns = [
     path("", views.landing, name="landing"),
@@ -8,6 +8,11 @@ urlpatterns = [
     path("events/new/", views.event_create, name="event_create"),
     path("events/<int:pk>/", views.event_detail, name="event_detail"),
     path("events/<int:pk>/share-all/", views.event_share_all, name="event_share_all"),
+    path(
+        "events/<int:pk>/wishes/<int:wish_pk>/claim/",
+        claim_views.wish_claim,
+        name="wish_claim",
+    ),
     path("wishes/", views.wishlist, name="wishlist"),
     path("wishes/new/", views.wish_create, name="wish_create"),
     path("wishes/<int:pk>/edit/", views.wish_edit, name="wish_edit"),

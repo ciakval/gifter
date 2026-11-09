@@ -4,6 +4,7 @@ from urllib.parse import urlsplit
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from django.utils import timezone
 from django.utils.translation import gettext
 from django.utils.translation import gettext_lazy as _
 
@@ -85,6 +86,7 @@ class Wish(models.Model):
 
     class Status(models.TextChoices):
         ACTIVE = "active", _("Active")
+        RECEIVED = "received", _("Received")
         WITHDRAWN = "withdrawn", _("Withdrawn")
 
     owner = models.ForeignKey(
@@ -121,3 +123,70 @@ class Wish(models.Model):
             domain = domain.removeprefix("www.")
             items.append({"url": url, "domain": domain})
         return items
+
+
+class Claim(models.Model):
+    """Someone is getting a wish. At most one per wish: the OneToOne is the unique constraint
+    that decides simultaneous claims.
+
+    related_name "+" removes every accessor from a Wish to its claim, so owner code and owner
+    templates cannot reach claim data by accident. It also keeps the reverse relation out of
+    `Wish._meta.get_fields()`, which the "no claim field on Wish" test walks. All claim reads and
+    writes go through gifter/claims.py.
+    """
+
+    class Status(models.TextChoices):
+        RESERVED = "reserved", _("Reserved")
+        PURCHASED = "purchased", _("Purchased")
+
+    wish = models.OneToOneField(
+        Wish, on_delete=models.CASCADE, related_name="+", verbose_name=_("wish")
+    )
+    claimer = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="claims",
+        verbose_name=_("claimer"),
+    )
+    status = models.CharField(
+        _("status"), max_length=10, choices=Status, default=Status.RESERVED
+    )
+    created_at = models.DateTimeField(_("created at"), auto_now_add=True)
+    acknowledged_at = models.DateTimeField(_("acknowledged at"), default=timezone.now)
+
+    class Meta:
+        verbose_name = _("claim")
+        verbose_name_plural = _("claims")
+
+    def __str__(self):
+        return self.wish.name
+
+
+class Contribution(models.Model):
+    """Someone chips in on another member's claim, with an optional note. No amounts."""
+
+    claim = models.ForeignKey(
+        Claim,
+        on_delete=models.CASCADE,
+        related_name="contributions",
+        verbose_name=_("claim"),
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="contributions",
+        verbose_name=_("user"),
+    )
+    note = models.CharField(_("note"), max_length=200, blank=True)
+    created_at = models.DateTimeField(_("created at"), auto_now_add=True)
+    acknowledged_at = models.DateTimeField(_("acknowledged at"), default=timezone.now)
+
+    class Meta:
+        verbose_name = _("contribution")
+        verbose_name_plural = _("contributions")
+        constraints = [
+            models.UniqueConstraint(fields=["claim", "user"], name="unique_claim_contribution"),
+        ]
+
+    def __str__(self):
+        return self.claim.wish.name
