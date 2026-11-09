@@ -103,7 +103,7 @@ Plans:
   4. From no page, URL, error message, ordering or timestamp can the giftee tell whether their wishes are claimed. Their pages are identical with and without claims. A sentinel-name crawl as the giftee, an owner-page diff and uniform-404 probe tests run in CI and block deploys when they fail.
   5. A giftee can mark a wish as received. It then leaves the active list everywhere and moves into a collapsed "Received" section without revealing the giver. The giftee can also reopen it.
 
-**Plans:** 2/3 plans executed (1 gap closure planned)
+**Plans:** 3/3 plans executed (1 gap closure planned)
 
 Plans:
 **Wave 1**
@@ -113,7 +113,7 @@ Plans:
 - [x] 03-02-PLAN.md — Received flow (Received button, collapsed Received section, Reopen), full secrecy suite (route inventory guard, sentinel crawl, byte-identical GET/POST snapshots, uniform-404 matrix, owner-view query capture), privacy policy for claims with date gate, smoke check for /claims/
 
 **Gap closure** *(from 03-VERIFICATION.md; run with `/gsd-execute-phase 3 --gaps-only`)*
-- [ ] 03-03-PLAN.md — Admin channel closed for a staff giftee: user delete denied (uniform 403, no bulk delete), claim-based user-list filters refused, view-only identity admins, staff-giftee snapshot pass and admin cascade invariant in the secrecy suite, wish-free Claim/Contribution str, `delete_user` command plus DEPLOYMENT.md steps for data requests *(after 03-02)*
+- [x] 03-03-PLAN.md — Admin channel closed for a staff giftee: user delete denied (uniform 403, no bulk delete), claim-based user-list filters refused, view-only identity admins, staff-giftee snapshot pass and admin cascade invariant in the secrecy suite, wish-free Claim/Contribution str, `delete_user` command plus DEPLOYMENT.md steps for data requests *(after 03-02)*
 **UI hint**: yes
 **Notes:** Run discuss-phase before planning, to settle what happens when an owner un-shares a claimed wish from an event and the details of the release hand-over. The claim and contribution tables, with their unique constraints, land in one migration. Concurrent claims are handled with unique constraints plus `IntegrityError` (`select_for_update` is a no-op on SQLite), covered by a two-thread race test. The cross-event name-visibility rule is already decided (see PROJECT.md). The received flow is the first cut candidate if the schedule slips.
 
@@ -142,5 +142,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 |-------|----------------|--------|-----------|
 | 1. Google Sign-in Live | 8/8 | In Progress | - |
 | 2. Events, Wishlists & Browsing | 2/2 | In Progress | - |
-| 3. Secret Claims & Gift Lifecycle | 2/3 | In Progress | - |
+| 3. Secret Claims & Gift Lifecycle | 3/3 | In Progress | - |
 | 4. Family Launch | 0/TBD | Not started | - |
