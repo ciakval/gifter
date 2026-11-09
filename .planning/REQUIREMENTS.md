@@ -51,13 +51,13 @@ Requirements for the Christmas 2026 release. Each maps to roadmap phases.
 ### Secrecy
 
 - [x] **SECR-01**: A giftee can never see claims, contributors, purchase status or claim-derived hints on their own wishes — via pages, URLs, error messages, ordering or timestamps
-- [ ] **SECR-02**: Automated tests prove SECR-01 (sentinel-name crawl of every route as the giftee; owner pages identical with and without a claim; non-member/owner probes get uniform 404)
+- [x] **SECR-02**: Automated tests prove SECR-01 (sentinel-name crawl of every route as the giftee; owner pages identical with and without a claim; non-member/owner probes get uniform 404)
 
 ### Lifecycle
 
-- [ ] **LIFE-01**: Giftee can mark a wish as received; it leaves the active list everywhere and the giver stays hidden
-- [ ] **LIFE-02**: Giftee can reopen a received wish
-- [ ] **LIFE-03**: Giftee sees their received wishes in a collapsed "Received" section
+- [x] **LIFE-01**: Giftee can mark a wish as received; it leaves the active list everywhere and the giver stays hidden
+- [x] **LIFE-02**: Giftee can reopen a received wish
+- [x] **LIFE-03**: Giftee sees their received wishes in a collapsed "Received" section
 
 ### Language & Mobile
 
@@ -141,10 +141,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CLAM-07 | Phase 3 | Complete |
 | CLAM-08 | Phase 3 | Complete |
 | SECR-01 | Phase 3 | Complete |
-| SECR-02 | Phase 3 | Pending |
-| LIFE-01 | Phase 3 | Pending |
-| LIFE-02 | Phase 3 | Pending |
-| LIFE-03 | Phase 3 | Pending |
+| SECR-02 | Phase 3 | Complete |
+| LIFE-01 | Phase 3 | Complete |
+| LIFE-02 | Phase 3 | Complete |
+| LIFE-03 | Phase 3 | Complete |
 | I18N-01 | Phase 4 | Pending |
 | I18N-02 | Phase 4 | Pending |
 
