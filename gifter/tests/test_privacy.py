@@ -31,14 +31,38 @@ REQUIRED_PHRASES = [
     "names of the other members",
     "keeps a copy",
     "seen only by you",
+    "Claims and chip-ins",
+    "never sees any of this",
+    "share at least one event with them",
+    "marks a wish as received",
+    "keeps seeing it in their My claims",
 ]
+
+# Fragments of three sentences that claims make untrue (D-17, T-03-17): the completeness
+# sentence, the deleted-wish-gone-for-everyone sentence, and the unshared-seen-only-by-owner one.
+RETIRED_PHRASES = (
+    "is all Gifter stores",
+    "every page for everyone",
+    "have not shared into any event",
+)
 
 
 class PrivacyPageTests(TestCase):
-    def test_policy_does_not_mention_claims_or_chip_ins_yet(self):
-        html = self.client.get(PRIVACY_URL).content.decode().lower()
-        self.assertNotIn("claim", html)
-        self.assertNotIn("chip", html)
+    def test_policy_describes_claims(self):
+        html = self.client.get(PRIVACY_URL).content.decode()
+        for phrase in (
+            "Claims and chip-ins",
+            "never sees any of this",
+            "share at least one event with them",
+            "marks a wish as received",
+            "keeps seeing it in their My claims",
+        ):
+            self.assertIn(phrase, html)
+
+    def test_policy_drops_retired_statements(self):
+        html = self.client.get(PRIVACY_URL).content.decode()
+        for phrase in RETIRED_PHRASES:
+            self.assertNotIn(phrase, html)
 
     def test_anonymous_gets_page_without_redirect(self):
         response = self.client.get(PRIVACY_URL)
@@ -79,11 +103,6 @@ class PrivacyPageTests(TestCase):
         anchor = re.search(r'<a\b[^>]*href="https://policies\.google\.com/privacy"[^>]*>', html)
         self.assertIsNotNone(anchor, "missing link to Google's privacy policy")
         self.assertIn('rel="noopener noreferrer"', anchor.group(0))
-
-    def test_does_not_describe_unbuilt_features(self):
-        html = self.client.get(PRIVACY_URL).content.decode().lower()
-        for word in ("claim", "chip"):
-            self.assertNotIn(word, html)
 
 
 class NoStoredTokensTests(GoogleRoundTripMixin, TestCase):
