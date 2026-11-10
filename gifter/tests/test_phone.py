@@ -124,3 +124,57 @@ class StylesheetTests(TestCase):
             r"@import",
         ):
             self.assertIsNone(re.search(forbidden, self.css), f"gifter.css contains {forbidden}")
+
+
+GROUP = "d-grid gap-2 d-sm-flex"
+TEMPLATE_GROUPS = {
+    "includes/owner_wish.html": [["Edit", "Delete", "Received"], ["Reopen"]],
+    "includes/member_wish.html": [["Mark purchased", "Release"]],
+    "my_claims.html": [["Mark purchased", "Release"], ["Remove from my claims"]],
+    "event_detail.html": [["My wishlist", "Share all my wishes here"]],
+    "wish_form.html": [["Save", "Add wish", "Cancel"]],
+    "wish_confirm_delete.html": [["Delete", "Cancel"]],
+}
+
+
+def group_texts(source):
+    """Texts of the buttons and links inside each element carrying the stacking classes."""
+    result = []
+    for match in re.finditer(r'class="[^"]*' + re.escape(GROUP) + r'[^"]*"', source):
+        depth, end = 1, None
+        # Walk to the matching close of the element (div or form) that opened the class.
+        open_tag = source.rfind("<", 0, match.start())
+        name = re.match(r"<(\w+)", source[open_tag:]).group(1)
+        pattern = re.compile(rf"<(/?){name}\b")
+        for tag in pattern.finditer(source, match.end()):
+            depth += -1 if tag.group(1) else 1
+            if depth == 0:
+                end = tag.start()
+                break
+        inner = source[match.end():end]
+        texts = re.findall(r"\{% translate \"([^\"]+)\" %\}", inner)
+        result.append(texts)
+    return result
+
+
+class StackingGroupTests(TestCase):
+    def test_every_template_has_a_stacking_group(self):
+        for name in TEMPLATE_GROUPS:
+            source = (TEMPLATES_DIR / "gifter" / name).read_text(encoding="utf-8")
+            self.assertIn(GROUP, source, name)
+
+    def test_order_is_kept(self):
+        for name, expected_groups in TEMPLATE_GROUPS.items():
+            source = (TEMPLATES_DIR / "gifter" / name).read_text(encoding="utf-8")
+            found = group_texts(source)
+            self.assertTrue(found, name)
+            for expected in expected_groups:
+                # a group matches when its action texts appear in the recorded wide-screen order
+                self.assertTrue(
+                    any(
+                        [t for t in texts if t in expected] == [t for t in expected if t in texts]
+                        and any(t in expected for t in texts)
+                        for texts in found
+                    ),
+                    f"{name}: {expected} not found in order in {found}",
+                )
