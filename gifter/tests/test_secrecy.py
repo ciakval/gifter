@@ -28,6 +28,14 @@ no page-wide word check and no list of pages excused from one:
 The suite also proves its own sensitivity on every run (test_detectors_catch_injected_owner_leak):
 it injects a leak into the owner card through a test-only template override and checks that the
 very same detectors report it.
+
+The Czech pass (plan 04-03, D-03): translations must not reintroduce a leak, so every class
+above that renders the giftee's pages is rerun in Czech by a subclass decorated with
+override_settings(LANGUAGE_CODE="cs"). LocaleMiddleware falls back to settings.LANGUAGE_CODE
+when there is no language cookie and no Accept-Language header, and the Django test client sends
+neither, so every request in those classes renders Czech. CzechPassIsReallyCzechTests proves
+that the pass is not silently English, and claim_state_markers() checks Czech claim-state
+wording as well as English.
 """
 
 import contextlib
@@ -48,6 +56,7 @@ from django.contrib.auth.signals import user_logged_in
 from django.contrib.contenttypes.models import ContentType
 from django.db import connection, transaction
 from django.test import Client, RequestFactory, TestCase, override_settings
+from django.utils import translation
 from django.test.utils import CaptureQueriesContext
 from django.urls import get_resolver, resolve, reverse
 
@@ -62,7 +71,12 @@ from gifter.admin import (
     ReadOnlySocialAccountAdmin,
 )
 from gifter.models import Claim, Contribution, Wish
-from gifter.tests.helpers import claim_state_markers, mask_csrf
+from gifter.tests.helpers import (
+    CLAIM_STATE_MSGIDS,
+    claim_state_markers,
+    czech_claim_state_markers,
+    mask_csrf,
+)
 from gifter.tests.test_events import join, make_event, make_user
 from gifter.tests.test_lockdown import ALLOWED_ACCOUNTS_ROUTES, walk_routes
 from gifter.tests.test_wishes import make_wish
@@ -402,12 +416,16 @@ def sentinel_findings(fx, selected):
 
 
 def own_wish_regions(kind, body):
-    """The parts of a page that show Gita's own wishes."""
+    """The parts of a page that show Gita's own wishes.
+
+    On the event page the region starts at the heading with id="own-wishes" and ends at the
+    next <h2, so it is found by structure and the same in every language.
+    """
     if kind == "main":
         found = re.search(r"<main\b[^>]*>(.*?)</main>", body, re.S)
         return [found.group(1)] if found else []
     if kind == "event":
-        start = body.find("Your wishes shared here")
+        start = body.find('id="own-wishes"')
         if start < 0:
             return []
         end = body.find("<h2", start)
@@ -978,3 +996,72 @@ class StaffGifteeTests(SecrecyMixin, TestCase):
             self.assertNotIn('value="delete_selected"', bulk_body)
             for user in users:
                 self.assertTrue(get_user_model().objects.filter(pk=user.pk).exists())
+
+
+# --------------------------------------------------------------------------------------------
+# The Czech pass (plan 04-03, D-03)
+# --------------------------------------------------------------------------------------------
+
+
+@override_settings(LANGUAGE_CODE="cs")
+class CzechSentinelCrawlTests(SentinelCrawlTests):
+    pass
+
+
+@override_settings(LANGUAGE_CODE="cs")
+class CzechOwnWishRegionTests(OwnWishRegionTests):
+    def test_scoping_is_what_keeps_the_check_green(self):
+        e1_page = next(p for p in probes(self.fx) if p.label == "event_detail E1 GET")
+        with with_claims(self.fx):
+            body = body_of(perform(self.fx.gita, e1_page))
+        with translation.override("cs"):
+            taken_by_kim = translation.gettext("Taken by %(name)s") % {"name": "Kim"}
+        self.assertTrue(claim_state_markers(body))
+        self.assertIn(taken_by_kim, body)
+        self.assertEqual(claim_state_markers(own_wish_regions("event", body)[0]), [])
+
+
+@override_settings(LANGUAGE_CODE="cs")
+class CzechByteIdenticalTests(ByteIdenticalTests):
+    pass
+
+
+@override_settings(LANGUAGE_CODE="cs")
+class CzechUniformNotFoundTests(UniformNotFoundTests):
+    pass
+
+
+@override_settings(LANGUAGE_CODE="cs")
+class CzechSelfSensitivityTests(SelfSensitivityTests):
+    pass
+
+
+@override_settings(LANGUAGE_CODE="cs")
+class CzechChokepointTests(ChokepointTests):
+    pass
+
+
+@override_settings(LANGUAGE_CODE="cs")
+class CzechStaffGifteeTests(StaffGifteeTests):
+    pass
+
+
+@override_settings(LANGUAGE_CODE="cs")
+class CzechPassIsReallyCzechTests(SecrecyMixin, TestCase):
+    """Guard: the Czech pass above renders Czech, so it cannot pass vacuously in English."""
+
+    def test_gitas_wishlist_is_czech(self):
+        probe = next(p for p in probes(self.fx) if p.label == "wishlist GET")
+        body = body_of(perform(self.fx.gita, probe))
+        with translation.override("cs"):
+            czech = translation.gettext("My wishlist")
+        self.assertNotEqual(czech, "My wishlist")
+        self.assertIn('lang="cs"', body)
+        self.assertIn(czech, body)
+
+    def test_every_czech_claim_state_marker_differs_from_its_english_msgid(self):
+        markers = czech_claim_state_markers()
+        self.assertEqual(len(markers), len(CLAIM_STATE_MSGIDS))
+        with translation.override("cs"):
+            for msgid in CLAIM_STATE_MSGIDS:
+                self.assertNotEqual(translation.gettext(msgid), msgid, msgid)
