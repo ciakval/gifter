@@ -354,6 +354,40 @@ def walk_routes(patterns, prefix=""):
             yield route
 
 
+# Routes whose view opts out of LoginRequiredMiddleware (login_required = False). A new public
+# route must be added here and to the probes in test_secrecy.py on purpose.
+PUBLIC_ROUTES = {
+    "",
+    "privacy/",
+    "invite/<slug:token>/",
+    "accounts/login/",
+    "accounts/logout/",
+    "accounts/3rdparty/login/cancelled/",
+    "accounts/3rdparty/signup/",
+    "accounts/google/login/",
+    "accounts/google/login/callback/",
+    "gifter-admin/login/",
+    "i18n/setlang/",
+}
+
+
+def walk_public_routes(patterns, prefix=""):
+    for pattern in patterns:
+        route = prefix + str(pattern.pattern)
+        if isinstance(pattern, URLResolver):
+            yield from walk_public_routes(pattern.url_patterns, route)
+        elif isinstance(pattern, URLPattern):
+            if getattr(pattern.callback, "login_required", True) is False:
+                yield route
+
+
+class PublicRoutesTests(TestCase):
+    def test_public_routes_are_exactly_the_allowlist(self):
+        """A new public route must be added to PUBLIC_ROUTES and to the secrecy probes on purpose."""
+        found = set(walk_public_routes(get_resolver().url_patterns))
+        self.assertEqual(found, PUBLIC_ROUTES)
+
+
 class AccountsUrlTableTests(TestCase):
     def test_accounts_routes_are_exactly_the_allowlist(self):
         found = {route for route in walk_routes(get_resolver().url_patterns) if route.startswith("accounts/")}

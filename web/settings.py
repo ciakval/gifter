@@ -161,7 +161,7 @@ SESSION_COOKIE_AGE = 60 * 60 * 24 * 90
 ALLAUTH_TRUSTED_PROXY_COUNT = 1  # one proxy: Caddy
 
 
-# Internationalization (D-05): strings are wrapped from day one; Czech catalogue is Phase 4.
+# Internationalization (D-05): strings are wrapped from day one; the Czech catalogue is in locale/.
 
 LANGUAGE_CODE = "en"
 LANGUAGES = [("en", "English"), ("cs", _("Čeština"))]
@@ -169,6 +169,11 @@ LOCALE_PATHS = [BASE_DIR / "locale"]
 TIME_ZONE = "Europe/Prague"
 USE_I18N = True
 USE_TZ = True
+# The language cookie is the only place the EN / CS choice is stored (no user field, no session
+# key, no URL prefix); /privacy/ describes it.
+LANGUAGE_COOKIE_AGE = 60 * 60 * 24 * 365
+LANGUAGE_COOKIE_HTTPONLY = True
+LANGUAGE_COOKIE_SAMESITE = "Lax"
 
 
 # Static files
@@ -199,6 +204,7 @@ if not DEBUG:
     SECURE_SSL_REDIRECT = True
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
+    LANGUAGE_COOKIE_SECURE = True
     SECURE_HSTS_SECONDS = env.int("SECURE_HSTS_SECONDS", default=3600)  # raise after a week of working HTTPS
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 

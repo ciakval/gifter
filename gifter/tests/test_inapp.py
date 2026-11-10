@@ -117,7 +117,9 @@ class LandingHintTests(TestCase):
         self.assertEqual(response.status_code, 200)
         html = response.content.decode()
         self.assertNotIn(GOOGLE_FORM_ACTION, html)
-        self.assertNotIn("<form", html)
+        # The only form is the EN / CS switch in the footer; Google's sign-in form stays absent.
+        self.assertEqual(html.count("<form"), 1)
+        self.assertIn('action="/i18n/setlang/"', html)
         self.assertContains(response, "Open Gifter in your browser")
         self.assertContains(response, "Continue anyway")
         self.assertEqual(response.context["copy_url"], "http://testserver/")

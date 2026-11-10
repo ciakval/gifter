@@ -248,6 +248,14 @@ def probes(fx):
     add("invite", "GET", invite_path)
     add("invite", "POST", invite_path)
     add("privacy", "GET", reverse("privacy"))
+    add(
+        "set_language",
+        "POST",
+        reverse("set_language"),
+        {"language": "cs", "next": reverse("wishlist")},
+        region="main",
+    )
+    add("set_language", "GET", reverse("set_language"))
     add("my_claims", "GET", reverse("my_claims"))
     for name in ("wish_claim", "wish_chip_in"):
         path = reverse(name, args=[fx.e1.pk, w1.pk])

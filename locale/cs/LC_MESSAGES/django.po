@@ -1,0 +1,838 @@
+# Czech translation of Gifter.
+# This file is distributed under the same license as the Gifter project.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: gifter\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-11-10 08:52+0100\n"
+"PO-Revision-Date: 2026-11-10 09:00+0100\n"
+"Last-Translator: Gifter <gifter@remesh.cz>\n"
+"Language-Team: Czech\n"
+"Language: cs\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2;\n"
+
+#: gifter/adapters.py
+msgid ""
+"This Gifter account is switched off. If you think this is a mistake, ask the "
+"person who invited you."
+msgstr ""
+
+#: gifter/admin.py
+msgid "Gifter admin"
+msgstr ""
+
+#: gifter/claim_views.py
+msgid "You are getting this one."
+msgstr ""
+
+#: gifter/claim_views.py
+msgid "Someone just took it."
+msgstr ""
+
+#: gifter/claim_views.py gifter/templates/gifter/includes/member_wish.html
+#: gifter/templates/gifter/my_claims.html
+msgid "You are chipping in."
+msgstr ""
+
+#: gifter/claim_views.py
+msgid "This wish is free again."
+msgstr ""
+
+#: gifter/claim_views.py
+msgid "You are already getting this one."
+msgstr ""
+
+#: gifter/claim_views.py
+msgid "This wish just changed. Please look at it again."
+msgstr ""
+
+#: gifter/claim_views.py
+msgid "Marked as purchased."
+msgstr ""
+
+#: gifter/claim_views.py
+msgid "You released it."
+msgstr ""
+
+#: gifter/claim_views.py
+msgid "You stopped chipping in."
+msgstr ""
+
+#: gifter/forms.py
+#, python-format
+msgid "“%(value)s” is not a web address starting with http:// or https://."
+msgstr ""
+
+#: gifter/forms.py
+#, python-format
+msgid "%(name)s (%(date)s)"
+msgstr ""
+
+#: gifter/forms.py gifter/templates/gifter/wish_form.html
+msgid "Share into events"
+msgstr ""
+
+#: gifter/forms.py
+msgid "Links"
+msgstr ""
+
+#: gifter/forms.py
+msgid "One web address per line."
+msgstr ""
+
+#: gifter/forms.py gifter/templates/gifter/includes/member_wish.html
+msgid "Note (optional)"
+msgstr ""
+
+#: gifter/models.py
+msgid "Unnamed member"
+msgstr ""
+
+#: gifter/models.py
+msgid "name"
+msgstr ""
+
+#: gifter/models.py
+msgid "date"
+msgstr ""
+
+#: gifter/models.py
+msgid "description"
+msgstr ""
+
+#: gifter/models.py
+msgid "created by"
+msgstr ""
+
+#: gifter/models.py
+msgid "invite token"
+msgstr ""
+
+#: gifter/models.py
+msgid "created at"
+msgstr ""
+
+#: gifter/models.py
+msgid "members"
+msgstr ""
+
+#: gifter/models.py
+msgid "event"
+msgstr ""
+
+#: gifter/models.py
+msgid "events"
+msgstr ""
+
+#: gifter/models.py
+msgid "user"
+msgstr ""
+
+#: gifter/models.py
+msgid "joined at"
+msgstr ""
+
+#: gifter/models.py
+msgid "membership"
+msgstr ""
+
+#: gifter/models.py
+msgid "memberships"
+msgstr ""
+
+#: gifter/models.py
+msgid "High"
+msgstr ""
+
+#: gifter/models.py
+msgid "Normal"
+msgstr ""
+
+#: gifter/models.py
+msgid "Low"
+msgstr ""
+
+#: gifter/models.py
+msgid "Active"
+msgstr ""
+
+#: gifter/models.py gifter/templates/gifter/includes/owner_wish.html
+#: gifter/templates/gifter/my_claims.html
+msgid "Received"
+msgstr ""
+
+#: gifter/models.py
+msgid "Withdrawn"
+msgstr ""
+
+#: gifter/models.py
+msgid "priority"
+msgstr ""
+
+#: gifter/models.py
+msgid "links"
+msgstr ""
+
+#: gifter/models.py
+msgid "status"
+msgstr ""
+
+#: gifter/models.py
+msgid "Reserved"
+msgstr ""
+
+#: gifter/models.py gifter/templates/gifter/includes/member_wish.html
+#: gifter/templates/gifter/my_claims.html
+msgid "Purchased"
+msgstr ""
+
+#: gifter/models.py
+msgid "wish"
+msgstr ""
+
+#: gifter/models.py
+msgid "claimer"
+msgstr ""
+
+#: gifter/models.py
+msgid "acknowledged at"
+msgstr ""
+
+#: gifter/models.py
+msgid "claim"
+msgstr ""
+
+#: gifter/models.py
+msgid "claims"
+msgstr ""
+
+#: gifter/models.py
+#, python-format
+msgid "Claim %(pk)s"
+msgstr ""
+
+#: gifter/models.py
+msgid "note"
+msgstr ""
+
+#: gifter/models.py
+msgid "contribution"
+msgstr ""
+
+#: gifter/models.py
+msgid "contributions"
+msgstr ""
+
+#: gifter/models.py
+#, python-format
+msgid "Contribution %(pk)s"
+msgstr ""
+
+#: gifter/templates/gifter/base.html
+msgid "Toggle navigation"
+msgstr "Přepnout navigaci"
+
+#: gifter/templates/gifter/base.html gifter/templates/gifter/privacy.html
+msgid "Events"
+msgstr "Události"
+
+#: gifter/templates/gifter/base.html gifter/templates/gifter/event_detail.html
+#: gifter/templates/gifter/wishlist.html
+msgid "My wishlist"
+msgstr "Můj seznam přání"
+
+#: gifter/templates/gifter/base.html gifter/templates/gifter/my_claims.html
+msgid "My claims"
+msgstr "Moje zamluvení"
+
+#: gifter/templates/gifter/base.html
+msgid "Sign out"
+msgstr "Odhlásit se"
+
+#: gifter/templates/gifter/base.html gifter/templates/gifter/privacy.html
+msgid "Privacy policy"
+msgstr "Zásady ochrany osobních údajů"
+
+#: gifter/templates/gifter/event_detail.html
+msgid "Want the others to see your wishes here?"
+msgstr ""
+
+#: gifter/templates/gifter/event_detail.html
+msgid "Share all my wishes here"
+msgstr ""
+
+#: gifter/templates/gifter/event_detail.html
+msgid "Add the things you would like, so the others can see them here."
+msgstr ""
+
+#: gifter/templates/gifter/event_detail.html
+#: gifter/templates/gifter/wish_form.html gifter/templates/gifter/wishlist.html
+msgid "Add wish"
+msgstr ""
+
+#: gifter/templates/gifter/event_detail.html
+#: gifter/templates/gifter/invite.html
+#, python-format
+msgid "%(counter)s member"
+msgid_plural "%(counter)s members"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+#: gifter/templates/gifter/event_detail.html
+msgid "You are the only member so far. Send the invite link to your family."
+msgstr ""
+
+#: gifter/templates/gifter/event_detail.html
+msgid "Invite link"
+msgstr ""
+
+#: gifter/templates/gifter/event_detail.html
+msgid ""
+"Anyone with this link can join this event after signing in. Send it only to "
+"people you want here."
+msgstr ""
+
+#: gifter/templates/gifter/event_detail.html
+#: gifter/templates/gifter/landing.html
+msgid "Link copied"
+msgstr "Odkaz zkopírován"
+
+#: gifter/templates/gifter/event_detail.html
+#: gifter/templates/gifter/landing.html
+msgid "Copy link"
+msgstr "Kopírovat odkaz"
+
+#: gifter/templates/gifter/event_detail.html
+msgid "Your wishes shared here"
+msgstr ""
+
+#: gifter/templates/gifter/event_detail.html
+msgid "None of your wishes are shared here yet."
+msgstr ""
+
+#: gifter/templates/gifter/event_detail.html
+#: gifter/templates/gifter/privacy.html
+msgid "Wishes"
+msgstr ""
+
+#: gifter/templates/gifter/event_detail.html
+msgid "No wishes shared here yet."
+msgstr ""
+
+#: gifter/templates/gifter/event_form.html gifter/templates/gifter/home.html
+msgid "Create event"
+msgstr "Vytvořit událost"
+
+#: gifter/templates/gifter/home.html
+msgid "My events"
+msgstr "Moje události"
+
+#: gifter/templates/gifter/home.html
+msgid ""
+"You are not in any events yet. Create one, or open an invite link someone "
+"sent you."
+msgstr ""
+"Zatím nejsi v žádné události. Vytvoř si ji, nebo otevři odkaz s pozvánkou, "
+"který ti někdo poslal."
+
+#: gifter/templates/gifter/includes/language_switch.html
+msgid "Language"
+msgstr "Jazyk"
+
+#: gifter/templates/gifter/includes/member_wish.html
+#: gifter/templates/gifter/my_claims.html
+msgid "Taken"
+msgstr ""
+
+#: gifter/templates/gifter/includes/member_wish.html
+#: gifter/templates/gifter/my_claims.html
+msgid "You are getting this."
+msgstr ""
+
+#: gifter/templates/gifter/includes/member_wish.html
+#: gifter/templates/gifter/my_claims.html
+#, python-format
+msgid "Purchased by %(name)s"
+msgstr ""
+
+#: gifter/templates/gifter/includes/member_wish.html
+#: gifter/templates/gifter/my_claims.html
+#, python-format
+msgid "Taken by %(name)s"
+msgstr ""
+
+#: gifter/templates/gifter/includes/member_wish.html
+#: gifter/templates/gifter/my_claims.html
+msgid "Purchased by someone"
+msgstr ""
+
+#: gifter/templates/gifter/includes/member_wish.html
+#: gifter/templates/gifter/my_claims.html
+msgid "Taken by someone"
+msgstr ""
+
+#: gifter/templates/gifter/includes/member_wish.html
+#: gifter/templates/gifter/my_claims.html
+msgid "Changed since you claimed"
+msgstr ""
+
+#: gifter/templates/gifter/includes/member_wish.html
+#: gifter/templates/gifter/my_claims.html
+msgid "Changed since you chipped in"
+msgstr ""
+
+#: gifter/templates/gifter/includes/member_wish.html
+#: gifter/templates/gifter/my_claims.html
+msgid "Got it"
+msgstr ""
+
+#: gifter/templates/gifter/includes/member_wish.html
+#: gifter/templates/gifter/my_claims.html
+#, python-format
+msgid "You are chipping in: %(note)s"
+msgstr ""
+
+#: gifter/templates/gifter/includes/member_wish.html
+#: gifter/templates/gifter/my_claims.html
+#, python-format
+msgid "%(name)s is chipping in: %(note)s"
+msgstr ""
+
+#: gifter/templates/gifter/includes/member_wish.html
+#: gifter/templates/gifter/my_claims.html
+#, python-format
+msgid "%(name)s is chipping in."
+msgstr ""
+
+#: gifter/templates/gifter/includes/member_wish.html
+#: gifter/templates/gifter/my_claims.html
+msgid "Someone is chipping in."
+msgstr ""
+
+#: gifter/templates/gifter/includes/member_wish.html
+msgid "Chip in"
+msgstr ""
+
+#: gifter/templates/gifter/includes/member_wish.html
+#: gifter/templates/gifter/my_claims.html
+msgid "Mark purchased"
+msgstr ""
+
+#: gifter/templates/gifter/includes/member_wish.html
+#: gifter/templates/gifter/my_claims.html
+msgid "Release"
+msgstr ""
+
+#: gifter/templates/gifter/includes/member_wish.html
+#: gifter/templates/gifter/my_claims.html
+msgid "Stop chipping in"
+msgstr ""
+
+#: gifter/templates/gifter/includes/member_wish.html
+msgid "I'll get this"
+msgstr ""
+
+#: gifter/templates/gifter/includes/owner_wish.html
+msgid "Shared in"
+msgstr ""
+
+#: gifter/templates/gifter/includes/owner_wish.html
+msgid "Not shared in any event yet."
+msgstr ""
+
+#: gifter/templates/gifter/includes/owner_wish.html
+msgid "Edit"
+msgstr ""
+
+#: gifter/templates/gifter/includes/owner_wish.html
+#: gifter/templates/gifter/wish_confirm_delete.html
+msgid "Delete"
+msgstr ""
+
+#: gifter/templates/gifter/includes/owner_wish.html
+msgid "Reopen"
+msgstr ""
+
+#: gifter/templates/gifter/invite.html
+msgid "You are already in this event."
+msgstr ""
+
+#: gifter/templates/gifter/invite.html
+msgid "Go to the event"
+msgstr ""
+
+#: gifter/templates/gifter/invite.html
+msgid "You are invited to"
+msgstr ""
+
+#: gifter/templates/gifter/invite.html
+#, python-format
+msgid "Created by %(name)s"
+msgstr ""
+
+#: gifter/templates/gifter/invite.html
+msgid "Join"
+msgstr ""
+
+#: gifter/templates/gifter/landing.html
+msgid ""
+"Gifter lets your family and friends see what you wish for and agree on who "
+"buys what, without spoiling the surprise."
+msgstr ""
+"Gifter pomáhá rodině a přátelům zjistit, co si kdo přeje, a domluvit se, kdo "
+"co koupí, aniž by se pokazilo překvapení."
+
+#: gifter/templates/gifter/landing.html
+msgid "Open Gifter in your browser"
+msgstr "Otevři Gifter v prohlížeči"
+
+#: gifter/templates/gifter/landing.html
+msgid ""
+"Google doesn't allow signing in inside this app. Open this page in Chrome or "
+"Safari to sign in."
+msgstr ""
+"Google nepovoluje přihlášení uvnitř této aplikace. Pro přihlášení otevři "
+"tuto stránku v Chromu nebo v Safari."
+
+#: gifter/templates/gifter/landing.html
+msgid "Tap the ⋯ menu in the corner of the screen."
+msgstr "Klepni na nabídku ⋯ v rohu obrazovky."
+
+#: gifter/templates/gifter/landing.html
+msgid "Choose Open in browser (it may say Open in Safari or Open in Chrome)."
+msgstr ""
+"Vyber Otevřít v prohlížeči (může tam být Otevřít v Safari nebo Otevřít v "
+"Chrome)."
+
+#: gifter/templates/gifter/landing.html
+msgid "Sign in with Google there."
+msgstr "Tam se přihlas přes Google."
+
+#: gifter/templates/gifter/landing.html
+msgid "Link to Gifter"
+msgstr "Odkaz na Gifter"
+
+#: gifter/templates/gifter/landing.html
+msgid "Continue anyway"
+msgstr "Přesto pokračovat"
+
+#: gifter/templates/gifter/landing.html
+msgid "Sign in with Google"
+msgstr "Přihlásit se přes Google"
+
+#: gifter/templates/gifter/my_claims.html
+#, python-format
+msgid "For %(name)s"
+msgstr ""
+
+#: gifter/templates/gifter/my_claims.html
+msgid "Withdrawn by the owner"
+msgstr ""
+
+#: gifter/templates/gifter/my_claims.html
+msgid "Remove from my claims"
+msgstr ""
+
+#: gifter/templates/gifter/my_claims.html
+msgid "You have not claimed or chipped in on anything yet."
+msgstr ""
+
+#: gifter/templates/gifter/privacy.html
+msgid ""
+"Gifter is a small, non-commercial website for family and friends to "
+"coordinate gifts. It is run privately by the person who set it up (the site "
+"operator). This page explains what Gifter stores about you today and why."
+msgstr ""
+
+#: gifter/templates/gifter/privacy.html
+msgid "What Gifter stores"
+msgstr ""
+
+#: gifter/templates/gifter/privacy.html
+msgid ""
+"When you sign in with Google, Google tells Gifter your Google account ID, "
+"your name, your email address (and whether Google has verified it) and the "
+"web address of your Google profile picture. Gifter keeps these to recognise "
+"you when you come back. It does not show your profile picture anywhere."
+msgstr ""
+
+#: gifter/templates/gifter/privacy.html
+msgid "Gifter also records when you joined and when you last signed in."
+msgstr ""
+
+#: gifter/templates/gifter/privacy.html
+msgid ""
+"When you create or join an event, Gifter stores the event's name, date and "
+"description, who created it, who its members are and when they joined. Every "
+"event also has an invite link."
+msgstr ""
+
+#: gifter/templates/gifter/privacy.html
+msgid ""
+"Gifter stores the wishes you add: name, description, priority, links, when "
+"you added and last changed them, and which events you share each one into."
+msgstr ""
+
+#: gifter/templates/gifter/privacy.html
+msgid ""
+"When you delete a wish it disappears from your wishlist and from every event "
+"page, but Gifter keeps a copy in its database. To have it erased, use the "
+"data request described under Keeping and deleting your data below."
+msgstr ""
+
+#: gifter/templates/gifter/privacy.html
+msgid "Claims and chip-ins"
+msgstr ""
+
+#: gifter/templates/gifter/privacy.html
+msgid ""
+"When you say you will get someone else's wish, mark it as purchased, release "
+"it, or chip in on someone else's claim with an optional note, Gifter stores "
+"who did it, when, and the note."
+msgstr ""
+
+#: gifter/templates/gifter/privacy.html
+msgid ""
+"The person whose wish it is never sees any of this: not who claimed it or "
+"chipped in, not the notes, and not even whether anyone did."
+msgstr ""
+
+#: gifter/templates/gifter/privacy.html
+msgid ""
+"Other members who can see the wish see that it is taken or purchased. The "
+"names of the people who claimed it or chipped in, and their notes, are shown "
+"only to members who share at least one event with them; everyone else sees "
+"“someone”."
+msgstr ""
+
+#: gifter/templates/gifter/privacy.html
+msgid ""
+"When the owner marks a wish as received, Gifter stores that. Claims and chip-"
+"ins on received or deleted wishes stay in Gifter's database. To have them "
+"erased, use the data request described under Keeping and deleting your data "
+"below."
+msgstr ""
+
+#: gifter/templates/gifter/privacy.html
+msgid ""
+"Before Gifter adds a feature that stores more about you, this page will be "
+"updated first to say what it stores and who can see it."
+msgstr ""
+
+#: gifter/templates/gifter/privacy.html
+msgid "What Gifter does not get"
+msgstr ""
+
+#: gifter/templates/gifter/privacy.html
+msgid ""
+"Gifter never sees your Google password. It asks Google only for your basic "
+"profile and email address, never for your contacts, files, calendar or "
+"anything else, and it does not keep any Google access tokens."
+msgstr ""
+
+#: gifter/templates/gifter/privacy.html
+msgid "Cookies"
+msgstr ""
+
+#: gifter/templates/gifter/privacy.html
+msgid ""
+"Gifter uses only the cookies it needs to work: one keeps you signed in for "
+"up to 90 days, one protects forms against forgery, and short-lived ones "
+"carry one-time notices. There are no advertising or tracking cookies."
+msgstr ""
+
+#: gifter/templates/gifter/privacy.html
+msgid "Who can see your information"
+msgstr ""
+
+#: gifter/templates/gifter/privacy.html
+msgid ""
+"Your Google account details are visible only to you and the site operator."
+msgstr ""
+
+#: gifter/templates/gifter/privacy.html
+msgid ""
+"Every member of an event can see the event's details, the names of the other "
+"members (the name from their Google account, never their email address) and "
+"the event's invite link. Anyone who has the invite link can join the event "
+"after signing in, so share it only with people you want in the event. The "
+"site operator can see everything Gifter stores."
+msgstr ""
+
+#: gifter/templates/gifter/privacy.html
+msgid ""
+"Every member of an event can see the wishes you share into that event, until "
+"you mark them as received or delete them. A wish you have never shared into "
+"any event is seen only by you."
+msgstr ""
+
+#: gifter/templates/gifter/privacy.html
+msgid ""
+"Anyone who is getting one of your wishes or chipping in on it keeps seeing "
+"it in their My claims, even after you stop sharing it, mark it as received "
+"or delete it. Who can see claims and chip-ins is described under Claims and "
+"chip-ins above."
+msgstr ""
+
+#: gifter/templates/gifter/privacy.html
+msgid ""
+"Gifter never sells or shares your data with anyone. There is no advertising "
+"and no analytics, and Gifter's pages load no scripts, fonts or images from "
+"other companies."
+msgstr ""
+
+#: gifter/templates/gifter/privacy.html
+msgid ""
+"Signing in is handled by Google, under the <a href=\"https://"
+"policies.google.com/privacy\" rel=\"noopener noreferrer\">Google Privacy "
+"Policy</a>."
+msgstr ""
+
+#: gifter/templates/gifter/privacy.html
+msgid "Where your data is kept"
+msgstr ""
+
+#: gifter/templates/gifter/privacy.html
+msgid ""
+"Your data is stored on a server in the European Union that the site operator "
+"runs. The server may keep short-lived technical logs (time, page requested "
+"and IP address) to keep Gifter running and secure."
+msgstr ""
+
+#: gifter/templates/gifter/privacy.html
+msgid "Keeping and deleting your data"
+msgstr ""
+
+#: gifter/templates/gifter/privacy.html
+msgid "Gifter keeps your data for as long as you use it."
+msgstr ""
+
+#: gifter/templates/gifter/privacy.html
+#, python-format
+msgid ""
+"To see what Gifter stores about you, or to have your account and everything "
+"Gifter stores about you deleted, write to <a href=\"mailto:"
+"%(email)s\">%(email)s</a>."
+msgstr ""
+
+#: gifter/templates/gifter/privacy.html
+msgid ""
+"To see what Gifter stores about you, or to have your account and everything "
+"Gifter stores about you deleted, ask the person who invited you to Gifter to "
+"pass your request on to the site operator."
+msgstr ""
+
+#: gifter/templates/gifter/privacy.html
+#, python-format
+msgid "Last updated: %(date)s"
+msgstr ""
+
+#: gifter/templates/gifter/wish_confirm_delete.html
+msgid "Delete this wish?"
+msgstr ""
+
+#: gifter/templates/gifter/wish_confirm_delete.html
+msgid "It disappears from your wishlist and from every event."
+msgstr ""
+
+#: gifter/templates/gifter/wish_confirm_delete.html
+#: gifter/templates/gifter/wish_form.html
+msgid "Cancel"
+msgstr ""
+
+#: gifter/templates/gifter/wish_form.html
+msgid "Edit wish"
+msgstr ""
+
+#: gifter/templates/gifter/wish_form.html
+msgid "You are not in any events yet. You can share this wish later."
+msgstr ""
+
+#: gifter/templates/gifter/wish_form.html
+msgid "Save"
+msgstr ""
+
+#: gifter/templates/gifter/wishlist.html
+msgid "No open wishes right now."
+msgstr ""
+
+#: gifter/templates/gifter/wishlist.html
+msgid "Your wishlist is empty. Add the first thing you would like to get."
+msgstr ""
+
+#: gifter/templates/gifter/wishlist.html
+#, python-format
+msgid "Received (%(total)s)"
+msgstr ""
+
+#: gifter/templates/socialaccount/authentication_error.html
+msgid "Sign-in didn't work"
+msgstr ""
+
+#: gifter/templates/socialaccount/authentication_error.html
+msgid "Something went wrong while signing in with Google. Please try again."
+msgstr ""
+
+#: gifter/templates/socialaccount/authentication_error.html
+#: gifter/templates/socialaccount/login_cancelled.html
+msgid "Try again"
+msgstr ""
+
+#: gifter/templates/socialaccount/login_cancelled.html
+msgid "Sign-in cancelled"
+msgstr ""
+
+#: gifter/templates/socialaccount/login_cancelled.html
+msgid ""
+"You cancelled signing in with Google. You can try again whenever you like."
+msgstr ""
+
+#: gifter/views.py
+msgid "Event created."
+msgstr ""
+
+#: gifter/views.py
+msgid "You have no wishes to share yet."
+msgstr ""
+
+#: gifter/views.py
+#, python-format
+msgid "%(count)d wish is shared here now."
+msgid_plural "%(count)d wishes are shared here now."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+#: gifter/views.py
+msgid "Marked as received."
+msgstr ""
+
+#: gifter/views.py
+msgid "Wish reopened."
+msgstr ""
+
+#: gifter/views.py
+msgid "Wish added."
+msgstr ""
+
+#: gifter/views.py
+#, python-format
+msgid "You joined %(event)s."
+msgstr ""
+
+#: gifter/views.py
+msgid "Wish saved."
+msgstr ""
+
+#: gifter/views.py
+msgid "Wish deleted."
+msgstr ""
+
+#: web/settings.py
+msgid "Čeština"
+msgstr "Čeština"

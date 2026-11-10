@@ -18,6 +18,9 @@ Why each allowlisted route exists:
 - accounts/google/login/     starts Google sign-in (POST only; GET shows a confirmation page)
 - accounts/google/login/callback/
                              where Google sends the browser back
+- i18n/setlang/              the EN / CS switch (D-02): the only route besides accounts/ that
+                             signed-out visitors may POST to, so the landing page can switch
+                             language before signing in; stores the choice in a cookie only
 
 Route order is load-bearing: the two login redirects must come BEFORE the admin include,
 otherwise the admin's own login page would answer first.
@@ -27,6 +30,7 @@ from django.contrib import admin
 from django.contrib.auth.decorators import login_not_required
 from django.urls import include, path
 from django.views.generic import RedirectView
+from django.views.i18n import set_language
 
 from allauth.account import views as account_views
 from allauth.socialaccount import views as socialaccount_views
@@ -62,6 +66,7 @@ urlpatterns = [
         google_views.oauth2_callback,
         name="google_callback",
     ),
+    path("i18n/setlang/", login_not_required(set_language), name="set_language"),
     path("gifter-admin/login/", to_landing),
     path("gifter-admin/", admin.site.urls),
     path("", include("gifter.urls")),
