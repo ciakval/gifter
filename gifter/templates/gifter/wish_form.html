@@ -28,8 +28,10 @@
           <div class="invalid-feedback d-block">{{ error }}</div>
         {% endfor %}
       </fieldset>
-      <button type="submit" class="btn btn-primary">{% if is_edit %}{% translate "Save" %}{% else %}{% translate "Add wish" %}{% endif %}</button>
-      <a href="{% url 'wishlist' %}" class="btn btn-link">{% translate "Cancel" %}</a>
+      <div class="d-grid gap-2 d-sm-flex flex-wrap">
+        <button type="submit" class="btn btn-primary">{% if is_edit %}{% translate "Save" %}{% else %}{% translate "Add wish" %}{% endif %}</button>
+        <a href="{% url 'wishlist' %}" class="btn btn-link">{% translate "Cancel" %}</a>
+      </div>
     </form>
   </div>
 </div>

@@ -34,11 +34,13 @@
 
       {% if row.state == "withdrawn" %}
         <div class="alert alert-secondary mt-2 mb-2" role="status">{% translate "Withdrawn by the owner" %}</div>
-        <form method="post" action="{% if row.role == 'claimer' %}{% url 'claim_release' wish.pk %}{% else %}{% url 'chip_in_leave' wish.pk %}{% endif %}">
-          {% csrf_token %}
-          <input type="hidden" name="next" value="{% url 'my_claims' %}">
-          <button type="submit" class="btn btn-outline-secondary">{% translate "Remove from my claims" %}</button>
-        </form>
+        <div class="d-grid gap-2 d-sm-flex flex-wrap">
+          <form method="post" action="{% if row.role == 'claimer' %}{% url 'claim_release' wish.pk %}{% else %}{% url 'chip_in_leave' wish.pk %}{% endif %}">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{% url 'my_claims' %}">
+            <button type="submit" class="btn btn-outline-secondary">{% translate "Remove from my claims" %}</button>
+          </form>
+        </div>
       {% elif row.state == "active" %}
         {% if claim.changed %}
           <div class="mt-2 d-flex flex-wrap align-items-center gap-2">
@@ -50,7 +52,7 @@
             </form>
           </div>
         {% endif %}
-        <div class="d-flex flex-wrap gap-2 mt-2">
+        <div class="d-grid gap-2 d-sm-flex flex-wrap mt-2">
           {% if row.role == "claimer" %}
             {% if not claim.is_purchased %}
               <form method="post" action="{% url 'claim_purchased' wish.pk %}">

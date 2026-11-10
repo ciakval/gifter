@@ -48,7 +48,7 @@
 {% empty %}
   <p class="text-body-secondary">{% translate "None of your wishes are shared here yet." %}</p>
 {% endfor %}
-<div class="d-flex flex-wrap gap-2 mb-4">
+<div class="d-grid gap-2 d-sm-flex flex-wrap mb-4">
   <a href="{% url 'wishlist' %}" class="btn btn-outline-primary btn-sm">{% translate "My wishlist" %}</a>
   <form method="post" action="{% url 'event_share_all' event.pk %}">
     {% csrf_token %}

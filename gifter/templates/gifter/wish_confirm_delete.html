@@ -10,8 +10,10 @@
     <p>{% translate "It disappears from your wishlist and from every event." %}</p>
     <form method="post">
       {% csrf_token %}
-      <button type="submit" class="btn btn-danger">{% translate "Delete" %}</button>
-      <a href="{% url 'wishlist' %}" class="btn btn-link">{% translate "Cancel" %}</a>
+      <div class="d-grid gap-2 d-sm-flex flex-wrap">
+        <button type="submit" class="btn btn-danger">{% translate "Delete" %}</button>
+        <a href="{% url 'wishlist' %}" class="btn btn-link">{% translate "Cancel" %}</a>
+      </div>
     </form>
   </div>
 </div>
