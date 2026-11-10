@@ -48,8 +48,8 @@ pass "(a) GET / is 200 and carries the Google sign-in form"
 # (b) HSTS
 hsts="$(header "$TMP/a.head" strict-transport-security)"
 case "$hsts" in
-  *includeSubDomains*) pass "(b) Strict-Transport-Security: $hsts" ;;
-  *) fail "(b) Strict-Transport-Security missing includeSubDomains (got: '${hsts:-none}')" ;;
+  *max-age=31536000*includeSubDomains*) pass "(b) Strict-Transport-Security: $hsts" ;;
+  *) fail "(b) Strict-Transport-Security should be max-age=31536000; includeSubDomains (got: '${hsts:-none}')" ;;
 esac
 
 # (c) protected page redirects to the landing page with next preserved
