@@ -34,7 +34,7 @@ fail() { echo "FAIL $1" >&2; exit 1; }
 dx() { docker exec "$NAME_A" "$@"; }
 manage() { docker exec "$NAME_A" python manage.py "$@"; }
 user_exists() { # user_exists NAME -> exit 0 when present in the live database
-  manage shell -c "from django.contrib.auth import get_user_model as g; import sys; sys.exit(0 if g().objects.filter(username='$1').exists() else 1)"
+  manage shell -v 0 -c "from django.contrib.auth import get_user_model as g; import sys; sys.exit(0 if g().objects.filter(username='$1').exists() else 1)"
 }
 backup() { CONTAINER="$NAME_A" DEST="$BK_DIR" bash "$REPO/scripts/gifter-backup.sh" "$@"; }
 
@@ -102,5 +102,48 @@ echo "$out" | grep -q '^BACKUP OK .*/pre-deletion-.*\.sqlite3$' || fail "(m3) un
 dx test -e /app/data/nightly-backups-since && fail "(m3) a manual copy wrote the marker"
 [ "$(find "$BK_DIR" -maxdepth 1 -name 'gifter-*.sqlite3' | wc -l)" = 14 ] || fail "(m3) manual copy changed the nightly count"
 pass "(m3) manual copy: no marker, no rotation"
+
+
+# (r1) dry run ----------------------------------------------------------------
+RESTORE() { CONTAINER="$NAME_A" DEST="$BK_DIR" bash "$REPO/scripts/gifter-restore.sh" "$@"; }
+manage shell -v 0 -c "from django.contrib.auth import get_user_model as g; g().objects.filter(username='backup-persist').delete()" >/dev/null
+out="$(RESTORE "$B1")"
+[ "$(echo "$out" | grep -c '^DRY RUN OK')" = 1 ] || fail "(r1) no DRY RUN OK line ($out)"
+user_exists backup-persist && fail "(r1) dry run restored data"
+pass "(r1) dry run validates and changes nothing"
+
+# (r2) refusals ---------------------------------------------------------------
+head -c 4096 /dev/urandom > "$WORK_DIR/random.sqlite3"
+python3 -I - "$WORK_DIR/foreign.sqlite3" <<'PY'
+import sqlite3, sys
+c = sqlite3.connect(sys.argv[1]); c.execute("CREATE TABLE t (x)"); c.commit(); c.close()
+PY
+before="$(find "$BK_DIR" -name 'pre-restore-*.sqlite3' | wc -l)"
+for bad in random foreign; do
+  if out="$(RESTORE "$WORK_DIR/$bad.sqlite3" --yes 2>&1)"; then fail "(r2) $bad file was accepted"; fi
+  echo "$out" | grep -q '^FAIL ' || fail "(r2) $bad file refused without a FAIL line ($out)"
+done
+user_exists backup-persist && fail "(r2) a refused restore changed the database"
+[ "$(find "$BK_DIR" -name 'pre-restore-*.sqlite3' | wc -l)" = "$before" ] || fail "(r2) a safety copy appeared for a refused file"
+pass "(r2) corrupt and foreign files refused, nothing changed"
+
+# (r3) real restore -----------------------------------------------------------
+out="$(RESTORE "$B1" --yes)"
+echo "$out" | grep -q '^RESTORE OK ' || fail "(r3) no RESTORE OK line ($out)"
+user_exists backup-persist || fail "(r3) backup-persist did not come back"
+[ "$(dx python -c "import sqlite3; print(sqlite3.connect('/app/data/db.sqlite3').execute('PRAGMA journal_mode').fetchone()[0])")" = wal ] || fail "(r3) live database is not in wal mode"
+manage migrate --check >/dev/null || fail "(r3) migrate --check failed after the restore"
+SAFE="$(echo "$out" | sed -n 's/^RESTORE OK .*safety copy \([^ ]*\) (.*/\1/p')"
+[ -f "$SAFE" ] && [ "$(stat -c %a "$SAFE")" = 600 ] || fail "(r3) safety copy missing or not mode 600 ($SAFE)"
+[ "$(python3 -I -c "import sqlite3,sys; print(sqlite3.connect(sys.argv[1]).execute(\"SELECT count(*) FROM gifter_user WHERE username='backup-persist'\").fetchone()[0])" "$SAFE")" = 0 ] \
+  || fail "(r3) safety copy does not hold the pre-restore state"
+pass "(r3) real restore with safety copy: data back, wal, migrations ok"
+
+# (r4) drill ------------------------------------------------------------------
+out="$(RESTORE --drill "$B1")"
+[ "$(echo "$out" | wc -l)" = 1 ] && echo "$out" | grep -Eq '^DRILL OK .+: [0-9]+ users, [0-9]+ events, [0-9]+ wishes$' || fail "(r4) unexpected drill output ($out)"
+[ "$(echo "$out" | sed -E 's/.*: ([0-9]+) users.*/\1/')" -ge 1 ] || fail "(r4) drill saw no users"
+[ -z "$(docker ps -a --filter name=gifter-drill- -q)" ] && [ -z "$(docker volume ls -q --filter name=gifter-drill-)" ] || fail "(r4) drill left a container or volume behind"
+pass "(r4) drill restored into a throwaway container and cleaned up"
 
 echo "BACKUP SMOKE OK"
