@@ -5,16 +5,22 @@ Run with DEBUG=1 (otherwise the production SSL redirect and fail-closed secrets 
     DEBUG=1 uv run python manage.py test gifter.tests.test_privacy
 """
 
+import datetime
 import re
+import tempfile
+from pathlib import Path
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
+from django.utils import translation
+from django.utils.formats import date_format
 
 from allauth.socialaccount.models import SocialToken
 
 from gifter.tests.test_auth import GoogleRoundTripMixin
 from gifter.tests.test_inapp import MESSENGER_IOS
+from gifter.views import PRIVACY_POLICY_UPDATED
 
 PRIVACY_URL = "/privacy/"
 
@@ -36,7 +42,25 @@ REQUIRED_PHRASES = [
     "share at least one event with them",
     "marks a wish as received",
     "keeps seeing it in their My claims",
+    "remembers the language you picked",
+    "for up to a year",
+    "one-off copy",
+    "deletes it by hand",
 ]
+
+# Sentences that are only true once a nightly backup exists; shown only while
+# DATA_DIR/nightly-backups-since holds a valid date (D-12, fail closed).
+GATED_PHRASES = (
+    "backed up every night",
+    "deleted after 14 days",
+    "at most 14 days later",
+)
+GATED_MSGIDS = (
+    "Gifter's database is also backed up every night to a separate folder on the same server. "
+    "Each nightly backup is deleted after 14 days.",
+    "Anything Gifter erases on request can stay in the nightly backups made before the erasure "
+    "until those backups are deleted, at most 14 days later.",
+)
 
 # Fragments of three sentences that claims make untrue (D-17, T-03-17): the completeness
 # sentence, the deleted-wish-gone-for-everyone sentence, and the unshared-seen-only-by-owner one.
@@ -44,10 +68,30 @@ RETIRED_PHRASES = (
     "is all Gifter stores",
     "every page for everyone",
     "have not shared into any event",
+    "forgery, and short-lived ones",
 )
 
 
-class PrivacyPageTests(TestCase):
+class TempDataDirMixin:
+    """Point DATA_DIR at a fresh empty directory so a local data/ never changes the outcome."""
+
+    def setUp(self):
+        super().setUp()
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.data_dir = Path(tmp.name)
+        override = override_settings(DATA_DIR=self.data_dir)
+        override.enable()
+        self.addCleanup(override.disable)
+
+    def write_marker(self, text):
+        (self.data_dir / "nightly-backups-since").write_text(text, encoding="utf-8")
+
+    def get_page(self, **extra):
+        return self.client.get(PRIVACY_URL, **extra).content.decode()
+
+
+class PrivacyPageTests(TempDataDirMixin, TestCase):
     def test_policy_describes_claims(self):
         html = self.client.get(PRIVACY_URL).content.decode()
         for phrase in (
@@ -103,6 +147,71 @@ class PrivacyPageTests(TestCase):
         anchor = re.search(r'<a\b[^>]*href="https://policies\.google\.com/privacy"[^>]*>', html)
         self.assertIsNotNone(anchor, "missing link to Google's privacy policy")
         self.assertIn('rel="noopener noreferrer"', anchor.group(0))
+
+
+class NightlyBackupMarkerTests(TempDataDirMixin, TestCase):
+    def test_without_marker_no_gated_sentence_and_no_14_days(self):
+        html = self.get_page()
+        for phrase in GATED_PHRASES:
+            self.assertNotIn(phrase, html)
+        self.assertNotIn("14 days", html)
+
+    def test_without_marker_czech_has_no_gated_sentence(self):
+        html = self.get_page(HTTP_ACCEPT_LANGUAGE="cs")
+        with translation.override("cs"):
+            for msgid in GATED_MSGIDS:
+                self.assertNotIn(translation.gettext(msgid), html)
+
+    def test_with_marker_all_gated_sentences_in_both_languages(self):
+        self.write_marker("2026-11-12\n")
+        html = self.get_page()
+        for phrase in GATED_PHRASES:
+            self.assertIn(phrase, html)
+        czech = self.get_page(HTTP_ACCEPT_LANGUAGE="cs")
+        with translation.override("cs"):
+            for msgid in GATED_MSGIDS:
+                translated = translation.gettext(msgid)
+                self.assertNotEqual(translated, msgid)
+                self.assertIn(translated, czech)
+
+    def test_unusable_marker_counts_as_absent(self):
+        for text in ("", "soon", "2026-13-40", "2026-1-2", "2026-11-12 junk"):
+            with self.subTest(text=text):
+                self.write_marker(text)
+                response = self.client.get(PRIVACY_URL)
+                self.assertEqual(response.status_code, 200)
+                for phrase in GATED_PHRASES:
+                    self.assertNotContains(response, phrase)
+
+    def test_marker_is_read_per_request(self):
+        for phrase in GATED_PHRASES:
+            self.assertNotIn(phrase, self.get_page())
+        self.write_marker("2026-11-12\n")
+        for phrase in GATED_PHRASES:
+            self.assertIn(phrase, self.get_page())
+
+    def test_last_updated_is_the_later_of_constant_and_marker(self):
+        self.write_marker("2099-01-02\n")
+        self.assertIn(date_format(datetime.date(2099, 1, 2), "DATE_FORMAT"), self.get_page())
+        self.write_marker("2020-01-02\n")
+        html = self.get_page()
+        self.assertIn(date_format(PRIVACY_POLICY_UPDATED, "DATE_FORMAT"), html)
+
+    def test_czech_page_is_fully_translated(self):
+        self.write_marker("2026-11-12\n")
+        source = (
+            Path(settings.BASE_DIR) / "gifter" / "templates" / "gifter" / "privacy.html"
+        ).read_text(encoding="utf-8")
+        msgids = re.findall(r'\{% translate "((?:[^"\\]|\\.)*)" %\}', source)
+        self.assertGreater(len(msgids), 20)
+        html = self.get_page(HTTP_ACCEPT_LANGUAGE="cs")
+        self.assertIn('lang="cs"', html)
+        with translation.override("cs"):
+            for msgid in msgids:
+                translated = translation.gettext(msgid)
+                self.assertNotEqual(translated, msgid, msgid)
+                self.assertNotIn(msgid, html, msgid)
+                self.assertIn(translated, html, msgid)
 
 
 class NoStoredTokensTests(GoogleRoundTripMixin, TestCase):
