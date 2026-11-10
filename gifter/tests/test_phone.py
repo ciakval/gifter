@@ -178,3 +178,47 @@ class StackingGroupTests(TestCase):
                     ),
                     f"{name}: {expected} not found in order in {found}",
                 )
+
+
+def template_files():
+    return sorted(TEMPLATES_DIR.rglob("*.html"))
+
+
+class FlexWrapScanTests(TestCase):
+    def test_every_flex_row_wraps(self):
+        offenders = []
+        for path in template_files():
+            for classes in re.findall(r'class="([^"]*)"', path.read_text(encoding="utf-8")):
+                names = classes.split()
+                if not any(n in ("d-flex", "d-sm-flex") for n in names):
+                    continue
+                if not any(n in ("flex-wrap", "flex-sm-wrap", "flex-column") for n in names):
+                    offenders.append(f"{path.name}: {classes}")
+        self.assertEqual(offenders, [])
+
+
+class FixedWidthScanTests(TestCase):
+    LIMIT_PX = 320
+
+    @staticmethod
+    def to_px(number, unit):
+        value = float(number)
+        return value * 16 if unit in ("rem", "em") else value
+
+    def test_no_wide_fixed_width(self):
+        sources = [(p, p.read_text(encoding="utf-8")) for p in template_files()]
+        sources += [
+            (p, strip_css_comments(p.read_text(encoding="utf-8")))
+            for p in sorted((GIFTER_DIR / "static" / "gifter").glob("*.css"))
+        ]
+        decl = re.compile(r"(?<![-\w])(?:min-)?width\s*:\s*([0-9.]+)(px|rem|em)?", re.I)
+        attr = re.compile(r"""<[^>]+\swidth\s*=\s*["']?([0-9.]+)(px)?""", re.I)
+        offenders = []
+        for path, text in sources:
+            for number, unit in decl.findall(text):
+                if self.to_px(number, unit or "px") > self.LIMIT_PX:
+                    offenders.append(f"{path.name}: width {number}{unit}")
+            for number, unit in attr.findall(text):
+                if float(number) > self.LIMIT_PX:
+                    offenders.append(f"{path.name}: width attribute {number}")
+        self.assertEqual(offenders, [])
