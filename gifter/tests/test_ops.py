@@ -1,11 +1,14 @@
 """Launch hardening (Phase 4, plan 04-05): health check, no-store on signed-in pages, dry-run kit."""
 
+from pathlib import Path
 from unittest import mock
 
 from django.contrib.auth import get_user_model
 from django.db import DatabaseError
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import translation
+from django.utils.translation import gettext
 
 
 class HealthzTests(TestCase):
@@ -60,3 +63,16 @@ class NoStoreTests(TestCase):
             response = self.client.get(reverse(name))
             self.assertEqual(response.status_code, 200)
             self.assertNotIn("no-store", response.get("Cache-Control", ""))
+
+
+class DryRunKitTests(TestCase):
+    LABELS = ["Sign in with Google", "Join", "Add wish", "I'll get this", "Release", "My claims"]
+
+    def test_czech_message_quotes_the_real_czech_button_labels(self):
+        path = Path(__file__).resolve().parents[2] / "docs" / "dry-run.md"
+        text = path.read_text(encoding="utf-8")
+        with translation.override("cs"):
+            for label in self.LABELS:
+                czech = gettext(label)
+                self.assertNotEqual(czech, label, label)
+                self.assertIn(czech, text, label)
