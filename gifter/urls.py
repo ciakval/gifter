@@ -3,6 +3,9 @@ from django.urls import path
 from . import claim_views, views
 
 urlpatterns = [
+    # No trailing slash on purpose: the deploy health check requests /healthz and a slash route
+    # would answer 301 (APPEND_SLASH).
+    path("healthz", views.healthz, name="healthz"),
     path("", views.landing, name="landing"),
     path("events/", views.home, name="home"),
     path("events/new/", views.event_create, name="event_create"),

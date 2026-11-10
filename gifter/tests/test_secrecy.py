@@ -227,6 +227,7 @@ def probes(fx):
 
     w1 = fx.w1
     add("landing", "GET", reverse("landing"))
+    add("healthz", "GET", reverse("healthz"))
     add("home", "GET", reverse("home"))
     add("event_create", "GET", reverse("event_create"))
     add("event_create", "POST", reverse("event_create"), {"name": "New event", "description": ""})

@@ -171,4 +171,13 @@ else
   fail "(o) GET / with Accept-Language: cs is not the Czech landing page (lang=\"cs\" missing or English sign-in text present)"
 fi
 
+# (p) the deploy health check target answers 200 with exactly "ok"
+code="$(get "$TMP/p.head" "$TMP/p.body" /healthz)"
+[ "$code" = "200" ] || fail "(p) GET /healthz returned $code, expected 200"
+if [ "$(cat "$TMP/p.body")" = "ok" ]; then
+  pass "(p) GET /healthz is 200 ok"
+else
+  fail "(p) GET /healthz body was '$(cat "$TMP/p.body")', expected exactly ok"
+fi
+
 echo "SMOKE OK"

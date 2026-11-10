@@ -7,15 +7,16 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_not_required
 from django.contrib.auth.views import redirect_to_login
-from django.db import transaction
+from django.db import DatabaseError, connection, transaction
 from django.db.models import F
-from django.http import Http404
+from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.translation import gettext as _
 from django.utils.translation import ngettext
-from django.views.decorators.http import require_POST
+from django.views.decorators.cache import never_cache
+from django.views.decorators.http import require_POST, require_safe
 
 from .claims import claim_views_for
 from .forms import EventForm, WishForm
@@ -79,6 +80,19 @@ def landing(request):
         context["copy_url"] = request.build_absolute_uri(_landing_path(next=next_url))
         context["force_url"] = _landing_path(force="1", next=next_url)
     return render(request, "gifter/landing.html", context)
+
+
+@login_not_required
+@require_safe
+@never_cache
+def healthz(request):
+    # Public on purpose and shows no data, version or error text (D-16); no template, no session.
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+    except DatabaseError:
+        return HttpResponse("unavailable", status=503, content_type="text/plain; charset=utf-8")
+    return HttpResponse("ok", content_type="text/plain; charset=utf-8")
 
 
 @login_not_required

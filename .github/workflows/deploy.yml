@@ -128,7 +128,7 @@ jobs:
     with:
       image_tag: ${{ needs.build-and-push.outputs.image_tag }}
       url: https://gifter.remesh.cz
-      # No health_path: the app has no health endpoint yet.
+      health_path: /healthz
     # bombur-deploy's reusable workflow declares no workflow_call secrets (inputs only), yet
     # GitHub requires the caller to pass the production environment secret DEPLOY_SSH_KEY to it.
     # An explicit mapping would be rejected ("not defined in the referenced workflow"), so

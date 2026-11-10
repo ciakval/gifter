@@ -358,6 +358,7 @@ def walk_routes(patterns, prefix=""):
 # route must be added here and to the probes in test_secrecy.py on purpose.
 PUBLIC_ROUTES = {
     "",
+    "healthz",
     "privacy/",
     "invite/<slug:token>/",
     "accounts/login/",
