@@ -130,6 +130,7 @@ Recent decisions affecting current work:
 | 01 | verification_deferred_human | /gsd-verify-work 01 |
 | 02 | verification_deferred_human | /gsd-verify-work 02 |
 | 03 | verification_deferred_human | /gsd-verify-work 03 |
+| 04 | verification_deferred_human | /gsd-verify-work 04 (backup timer + restore drill, real-device checks, family dry-run per docs/dry-run.md) |
 
 ## Deferred Items
 

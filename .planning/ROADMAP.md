@@ -133,15 +133,15 @@ Plans:
 
 Plans:
 **Wave 1**
-- [ ] 04-01-PLAN.md — Czech everywhere: EN / CS switch (set_language, cookie only), complete Czech catalogue with three-form plurals checked against Django's, catalogue gate in CI, Czech landing in the container smoke
-- [ ] 04-02-PLAN.md — Nightly backups and a proven restore: sqlite3 in the image, gifter-backup.sh (online .backup, 14 days, writes the nightly-backups-since marker once on the first nightly success), gifter-restore.sh (dry run, --yes with safety copy, --drill), systemd timer, local backup smoke, DEPLOYMENT.md backups section and deletion steps
+- [x] 04-01-PLAN.md — Czech everywhere: EN / CS switch (set_language, cookie only), complete Czech catalogue with three-form plurals checked against Django's, catalogue gate in CI, Czech landing in the container smoke
+- [x] 04-02-PLAN.md — Nightly backups and a proven restore: sqlite3 in the image, gifter-backup.sh (online .backup, 14 days, writes the nightly-backups-since marker once on the first nightly success), gifter-restore.sh (dry run, --yes with safety copy, --drill), systemd timer, local backup smoke, DEPLOYMENT.md backups section and deletion steps
 
 **Wave 2** *(blocked on Wave 1 completion)*
-- [ ] 04-03-PLAN.md — Truthful privacy policy in EN and CS: language cookie and one-off copies always, nightly-backup and 14-day sentences only once the marker exists (date gate); secrecy suite rerun in Czech
+- [x] 04-03-PLAN.md — Truthful privacy policy in EN and CS: language cookie and one-off copies always, nightly-backup and 14-day sentences only once the marker exists (date gate); secrecy suite rerun in Czech
 
 **Wave 3** *(blocked on Wave 2 completion)*
-- [ ] 04-04-PLAN.md — Phone pass on stock Bootstrap: gifter.css 44px targets, stacked full-width buttons below 576px, wrapping rows, no fixed widths, automated checks in EN and CS
-- [ ] 04-05-PLAN.md — /healthz with health_path, one-year HSTS, no-store on signed-in pages, Czech family dry-run kit and launch order, DEPLOYMENT.md catch-up
+- [x] 04-04-PLAN.md — Phone pass on stock Bootstrap: gifter.css 44px targets, stacked full-width buttons below 576px, wrapping rows, no fixed widths, automated checks in EN and CS
+- [x] 04-05-PLAN.md — /healthz with health_path, one-year HSTS, no-store on signed-in pages, Czech family dry-run kit and launch order, DEPLOYMENT.md catch-up
 **UI hint**: yes
 **Notes:** Check the Czech Plural-Forms header against Django's own `cs` catalogue, and have a Czech-speaking relative review the copy. Prepare a short plain-Czech "how to join" message for relatives. Finish the Czech catalogue and the phone pass before the dry-run window opens (~15 Nov). Backups can be set up any time after the first deploy, but the restore drill must be done before 1 Dec.
 
@@ -155,4 +155,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | 1. Google Sign-in Live | 8/8 | In Progress | - |
 | 2. Events, Wishlists & Browsing | 2/2 | In Progress | - |
 | 3. Secret Claims & Gift Lifecycle | 3/3 | In Progress | - |
-| 4. Family Launch | 0/5 | Planned | - |
+| 4. Family Launch | 5/5 | Deployed, UAT pending | - |
