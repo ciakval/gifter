@@ -197,5 +197,7 @@ class PluralTests(TestCase):
 
     def test_django_own_czech_plurals_still_work(self):
         with translation.override("cs"):
-            got = [ngettext("%(num)d minute", "%(num)d minutes", n) % {"num": n} for n in (1, 2, 5)]
+            # Variables, not literals: makemessages must not pick this msgid up for Gifter's catalogue.
+            one, many = "%(num)d minute", "%(num)d minutes"
+            got = [ngettext(one, many, n) % {"num": n} for n in (1, 2, 5)]
         self.assertEqual(got, ["1 minuta", "2 minuty", "5 minut"])

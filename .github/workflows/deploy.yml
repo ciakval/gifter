@@ -37,6 +37,15 @@ jobs:
       - name: Install locked dependencies
         run: uv sync --locked
 
+      # gettext is only needed by the catalogue gate; the committed .mo is what ships in the image.
+      - name: Install gettext
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends gettext
+
+      - name: Czech catalogue is complete and compiled
+        run: bash scripts/check-translations.sh
+
       - name: Migrations are up to date
         run: uv run python manage.py makemigrations --check --dry-run
         env:

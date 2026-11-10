@@ -160,4 +160,15 @@ case "$loc" in
   *) fail "(n) GET /claims/ Location was '$loc', expected /?next=/claims/" ;;
 esac
 
+# (o) a Czech browser gets the Czech landing page: proves the committed .mo ships in the image
+# (html lang alone would say cs even without it); prints PASS (o)
+code="$(curl -sS -o "$TMP/o.body" -D "$TMP/o.head" -w '%{http_code}' "${PROXY_HEADERS[@]}" \
+  -H "Accept-Language: cs" "$BASE/")"
+[ "$code" = "200" ] || fail "(o) GET / with Accept-Language: cs returned $code, expected 200"
+if grep -q '<html lang="cs">' "$TMP/o.body" && ! grep -q 'Sign in with Google' "$TMP/o.body"; then
+  pass "(o) GET / with Accept-Language: cs renders the Czech landing page"
+else
+  fail "(o) GET / with Accept-Language: cs is not the Czech landing page (lang=\"cs\" missing or English sign-in text present)"
+fi
+
 echo "SMOKE OK"
