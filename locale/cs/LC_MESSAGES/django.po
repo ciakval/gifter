@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gifter\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-10 08:52+0100\n"
+"POT-Creation-Date: 2026-11-10 09:02+0100\n"
 "PO-Revision-Date: 2026-11-10 09:00+0100\n"
 "Last-Translator: Gifter <gifter@remesh.cz>\n"
 "Language-Team: Czech\n"
@@ -680,12 +680,14 @@ msgstr "Cookies"
 #: gifter/templates/gifter/privacy.html
 msgid ""
 "Gifter uses only the cookies it needs to work: one keeps you signed in for "
-"up to 90 days, one protects forms against forgery, and short-lived ones "
-"carry one-time notices. There are no advertising or tracking cookies."
+"up to 90 days, one protects forms against forgery, short-lived ones carry "
+"one-time notices, and one remembers the language you picked with the EN / CS "
+"switch, for up to a year. There are no advertising or tracking cookies."
 msgstr ""
 "Gifter používá jen cookies, které potřebuje k fungování: jedna tě drží "
-"přihlášeného až 90 dní, jedna chrání formuláře před podvržením a krátkodobé "
-"přenášejí jednorázová upozornění. Žádné reklamní ani sledovací cookies tu "
+"přihlášeného až 90 dní, jedna chrání formuláře před podvržením, krátkodobé "
+"přenášejí jednorázová upozornění a jedna si pamatuje jazyk zvolený "
+"přepínačem EN / CS, až na rok. Žádné reklamní ani sledovací cookies tu "
 "nejsou."
 
 #: gifter/templates/gifter/privacy.html
@@ -768,6 +770,24 @@ msgstr ""
 "(čas, požadovanou stránku a IP adresu), aby Gifter fungoval a byl bezpečný."
 
 #: gifter/templates/gifter/privacy.html
+msgid ""
+"Before maintenance, such as erasing an account or restoring a backup, the "
+"site operator may make a one-off copy of Gifter's database on the same "
+"server, and deletes it by hand once the work has been checked."
+msgstr ""
+"Před údržbou, například před smazáním účtu nebo obnovou ze zálohy, může "
+"provozovatel webu udělat jednorázovou kopii databáze Gifteru na stejném "
+"serveru a po ověření, že práce dopadla dobře, ji ručně smaže."
+
+#: gifter/templates/gifter/privacy.html
+msgid ""
+"Gifter's database is also backed up every night to a separate folder on the "
+"same server. Each nightly backup is deleted after 14 days."
+msgstr ""
+"Databáze Gifteru se navíc každou noc zálohuje do samostatné složky na "
+"stejném serveru. Každá noční záloha se po 14 dnech smaže."
+
+#: gifter/templates/gifter/privacy.html
 msgid "Keeping and deleting your data"
 msgstr "Uchovávání a mazání tvých údajů"
 
@@ -795,6 +815,15 @@ msgstr ""
 "Chceš-li vědět, co si o tobě Gifter ukládá, nebo chceš-li smazat svůj účet a "
 "všechno, co o tobě Gifter ukládá, požádej toho, kdo tě do Gifteru pozval, "
 "aby tvou žádost předal provozovateli webu."
+
+#: gifter/templates/gifter/privacy.html
+msgid ""
+"Anything Gifter erases on request can stay in the nightly backups made "
+"before the erasure until those backups are deleted, at most 14 days later."
+msgstr ""
+"Cokoli, co Gifter na žádost smaže, může zůstat v nočních zálohách "
+"vytvořených před smazáním, dokud se tyto zálohy nesmažou, nejpozději však "
+"14 dní poté."
 
 #: gifter/templates/gifter/privacy.html
 #, python-format

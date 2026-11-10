@@ -1,4 +1,6 @@
 import datetime
+import re
+from pathlib import Path
 from urllib.parse import urlencode
 
 from django.conf import settings
@@ -22,7 +24,24 @@ from .models import Event, Membership, Wish
 
 # Bump whenever privacy.html changes. The policy must be updated BEFORE a feature that
 # stores or shows new kinds of data ships (see DEPLOYMENT.md).
-PRIVACY_POLICY_UPDATED = datetime.date(2026, 11, 9)
+PRIVACY_POLICY_UPDATED = datetime.date(2026, 11, 10)
+
+# File in DATA_DIR written once by scripts/gifter-backup.sh (plan 04-02) after the first
+# successful NIGHTLY backup, never by manual copies. While it is missing or not a valid
+# YYYY-MM-DD date the privacy page says nothing about nightly backups (fail closed).
+NIGHTLY_BACKUPS_MARKER = "nightly-backups-since"
+
+
+def _nightly_backups_since():
+    """The date of the first nightly backup, or None when the marker is missing or unusable."""
+    try:
+        text = (Path(settings.DATA_DIR) / NIGHTLY_BACKUPS_MARKER).read_text(encoding="utf-8")
+        text = text.strip()
+        if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", text):
+            return None
+        return datetime.date.fromisoformat(text)
+    except (OSError, ValueError):
+        return None
 
 
 def _landing_path(**params):
@@ -64,11 +83,17 @@ def landing(request):
 
 @login_not_required
 def privacy(request):
-    # Public, static page: reads only two constants, never any user or wish data.
+    # Public page: reads two constants and the backup marker file, never any user or wish data.
+    since = _nightly_backups_since()
+    updated = max(PRIVACY_POLICY_UPDATED, since) if since else PRIVACY_POLICY_UPDATED
     return render(
         request,
         "gifter/privacy.html",
-        {"contact_email": settings.GIFTER_CONTACT_EMAIL, "updated": PRIVACY_POLICY_UPDATED},
+        {
+            "contact_email": settings.GIFTER_CONTACT_EMAIL,
+            "updated": updated,
+            "nightly_backups_since": since,
+        },
     )
 
 

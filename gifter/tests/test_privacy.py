@@ -55,6 +55,8 @@ GATED_PHRASES = (
     "deleted after 14 days",
     "at most 14 days later",
 )
+# Msgids whose Czech text is legitimately identical to the English one.
+SAME_IN_CZECH = ("Cookies",)
 GATED_MSGIDS = (
     "Gifter's database is also backed up every night to a separate folder on the same server. "
     "Each nightly backup is deleted after 14 days.",
@@ -192,10 +194,12 @@ class NightlyBackupMarkerTests(TempDataDirMixin, TestCase):
 
     def test_last_updated_is_the_later_of_constant_and_marker(self):
         self.write_marker("2099-01-02\n")
-        self.assertIn(date_format(datetime.date(2099, 1, 2), "DATE_FORMAT"), self.get_page())
+        with translation.override("en"):
+            later = date_format(datetime.date(2099, 1, 2), "DATE_FORMAT")
+            constant = date_format(PRIVACY_POLICY_UPDATED, "DATE_FORMAT")
+        self.assertIn(later, self.get_page(HTTP_ACCEPT_LANGUAGE="en"))
         self.write_marker("2020-01-02\n")
-        html = self.get_page()
-        self.assertIn(date_format(PRIVACY_POLICY_UPDATED, "DATE_FORMAT"), html)
+        self.assertIn(constant, self.get_page(HTTP_ACCEPT_LANGUAGE="en"))
 
     def test_czech_page_is_fully_translated(self):
         self.write_marker("2026-11-12\n")
@@ -209,8 +213,9 @@ class NightlyBackupMarkerTests(TempDataDirMixin, TestCase):
         with translation.override("cs"):
             for msgid in msgids:
                 translated = translation.gettext(msgid)
-                self.assertNotEqual(translated, msgid, msgid)
-                self.assertNotIn(msgid, html, msgid)
+                if msgid not in SAME_IN_CZECH:
+                    self.assertNotEqual(translated, msgid, msgid)
+                    self.assertNotIn(msgid, html, msgid)
                 self.assertIn(translated, html, msgid)
 
 
