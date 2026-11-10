@@ -41,3 +41,22 @@ class HealthzTests(TestCase):
 
     def test_route_name_resolves_without_slash(self):
         self.assertEqual(reverse("healthz"), "/healthz")
+
+
+class NoStoreTests(TestCase):
+    def test_signed_in_pages_and_redirects_are_private_no_store(self):
+        user = get_user_model().objects.create_user(username="n", password="x")
+        self.client.force_login(user)
+        page = self.client.get(reverse("home"))
+        self.assertEqual(page.status_code, 200)
+        redirect = self.client.get(reverse("landing"))
+        self.assertEqual(redirect.status_code, 302)
+        for response in (page, redirect):
+            self.assertIn("no-store", response["Cache-Control"])
+            self.assertIn("private", response["Cache-Control"])
+
+    def test_anonymous_public_pages_are_not_no_store(self):
+        for name in ("landing", "privacy"):
+            response = self.client.get(reverse(name))
+            self.assertEqual(response.status_code, 200)
+            self.assertNotIn("no-store", response.get("Cache-Control", ""))
