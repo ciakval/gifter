@@ -128,3 +128,74 @@ class EncodingTests(TestCase):
         self.assertIn('<meta charset="utf-8">', html)
         self.assertRegex(html, "[řčůěšž]")
         self.assertNotRegex(html, r"&[a-z]caron;|&#\d+;|Ã|Å™")
+
+
+# --- Task 2: plurals and catalogue ---
+
+PLURAL_HEADER = "nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2;"
+
+
+def django_cs_plural_expression():
+    """The plural equation of Django's own compiled cs catalogue (its header spans two .po lines)."""
+    import gettext
+    import pathlib
+
+    import django
+
+    mo = pathlib.Path(django.__file__).parent / "conf/locale/cs/LC_MESSAGES/django.mo"
+    with mo.open("rb") as handle:
+        header = gettext.GNUTranslations(handle).info()["plural-forms"]
+    return re.search(r"plural=([^;]*);?", header).group(1)
+
+
+class PluralTests(TestCase):
+    def test_po_header_has_the_pinned_three_form_expression(self):
+        import pathlib
+
+        from django.conf import settings
+
+        po = (pathlib.Path(settings.BASE_DIR) / "locale/cs/LC_MESSAGES/django.po").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn(f'"Plural-Forms: {PLURAL_HEADER}\\n"', po)
+
+    def test_three_forms_agree_with_django_for_every_integer(self):
+        from gettext import c2py
+
+        ours = c2py("(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2")
+        theirs = c2py(django_cs_plural_expression())
+        mapping = {0: 0, 1: 1, 3: 2}
+        for n in range(1001):
+            self.assertNotEqual(theirs(n), 2, n)
+            self.assertEqual(ours(n), mapping[theirs(n)], n)
+
+    def member_count(self, n):
+        template = Template(
+            "{% load i18n %}{% blocktranslate count counter=n %}{{ counter }} member"
+            "{% plural %}{{ counter }} members{% endblocktranslate %}"
+        )
+        return template.render(Context({"n": n}))
+
+    def test_member_count_has_three_czech_forms(self):
+        with translation.override("cs"):
+            texts = {n: self.member_count(n) for n in (0, 1, 2, 4, 5, 11, 21)}
+        bare = {n: re.sub(r"\d+", "", text) for n, text in texts.items()}
+        self.assertEqual(len({bare[1], bare[2], bare[5]}), 3)
+        self.assertEqual(bare[2], bare[4])
+        self.assertEqual({bare[5], bare[11], bare[21], bare[0]}, {bare[5]})
+        for text in texts.values():
+            self.assertNotIn("member", text)
+
+    def test_wish_share_message_is_translated_for_1_2_5(self):
+        singular = "%(count)d wish is shared here now."
+        plural = "%(count)d wishes are shared here now."
+        with translation.override("cs"):
+            for n in (1, 2, 5):
+                text = ngettext(singular, plural, n) % {"count": n}
+                self.assertNotEqual(text, (singular if n == 1 else plural) % {"count": n})
+                self.assertIn(str(n), text)
+
+    def test_django_own_czech_plurals_still_work(self):
+        with translation.override("cs"):
+            got = [ngettext("%(num)d minute", "%(num)d minutes", n) % {"num": n} for n in (1, 2, 5)]
+        self.assertEqual(got, ["1 minuta", "2 minuty", "5 minut"])
