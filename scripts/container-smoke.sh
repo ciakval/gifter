@@ -4,16 +4,21 @@
 # WhiteNoise static files, SQLite (WAL) data surviving container replacement.
 #
 #   bash scripts/container-smoke.sh        (SMOKE_PORT defaults to 18000)
+#
+# SMOKE_TAG (default "smoke") names the image tag and the container names. Give each
+# parallel worktree its own SMOKE_TAG and SMOKE_PORT: two runs building the same tag
+# swap the image under each other.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-IMAGE="gifter:smoke"
+SMOKE_TAG="${SMOKE_TAG:-smoke}"
+IMAGE="gifter:$SMOKE_TAG"
 PORT="${SMOKE_PORT:-18000}"
 HOST_NAME="gifter.remesh.cz"
-NAME_A="gifter-smoke-a-$$"
-NAME_B="gifter-smoke-b-$$"
-NAME_S="gifter-smoke-static-$$"
+NAME_A="gifter-$SMOKE_TAG-a-$$"
+NAME_B="gifter-$SMOKE_TAG-b-$$"
+NAME_S="gifter-$SMOKE_TAG-static-$$"
 DATA_DIR="$(mktemp -d)"
 WORK_DIR="$(mktemp -d)"
 SECRET="$(python3 -c 'import secrets; print(secrets.token_urlsafe(64))')"

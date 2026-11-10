@@ -1,5 +1,11 @@
 FROM python:3.13-slim
 
+# The sqlite3 command-line tool runs the nightly online backup and the restore inside
+# this container through docker exec (D-09). Nothing else uses it.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends sqlite3 \
+    && rm -rf /var/lib/apt/lists/*
+
 ARG VERSION=dev
 ARG BUILD_ID=unknown
 ENV PYTHONDONTWRITEBYTECODE=1 \
