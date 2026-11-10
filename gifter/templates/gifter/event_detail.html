@@ -42,7 +42,7 @@
   </div>
 </div>
 
-<h2 class="h4 mb-3">{% translate "Your wishes shared here" %}</h2>
+<h2 id="own-wishes" class="h4 mb-3">{% translate "Your wishes shared here" %}</h2>
 {% for wish in own_wishes %}
   {% include "gifter/includes/owner_wish.html" %}
 {% empty %}
