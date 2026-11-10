@@ -3,7 +3,7 @@
 {% block head_title %}{% translate "My wishlist" %} - Gifter{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-3">
+<div class="d-flex flex-wrap gap-2 justify-content-between align-items-center mb-3">
   <h1 class="h3 mb-0">{% translate "My wishlist" %}</h1>
   <a href="{% url 'wish_create' %}" class="btn btn-primary">{% translate "Add wish" %}</a>
 </div>
