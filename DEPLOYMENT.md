@@ -40,6 +40,12 @@ URI registered for the dev Google client.
 - Production image check (build, run behind a simulated proxy, restart on the same data):
   `bash scripts/container-smoke.sh`
 - Live check of a running site: `bash scripts/smoke.sh https://gifter.remesh.cz`
+- Translations: after changing user-facing text run
+  `DEBUG=1 uv run python manage.py makemessages -l cs --no-obsolete --add-location=file --ignore=staticfiles --ignore=data`,
+  translate in `locale/cs/LC_MESSAGES/django.po` (all entries, no fuzzy flags, three plural
+  forms), run `DEBUG=1 uv run python manage.py compilemessages -l cs --ignore=.venv`, commit the
+  `.po` and the `.mo` together, and check with `bash scripts/check-translations.sh` (CI runs it too).
+- The family dry-run kit and the launch order are in `docs/dry-run.md`.
 
 ## One-time setup (in this order)
 
@@ -137,6 +143,8 @@ Changing `compose.yaml` later means re-running `bombur-onboard` (it also rotates
 
 - Every push to `main` runs test -> build -> deploy. Tests, `makemigrations --check` and
   `check --deploy --fail-level WARNING` must pass before an image is built.
+- After each deploy the workflow checks `https://gifter.remesh.cz/healthz` and fails the run
+  if it does not answer 2xx within about a minute.
 - Re-run manually: `gh workflow run deploy.yml --ref main`.
 - Deploy history on the server (including rejected attempts):
   `ssh -p 10022 ciakval@bombur.remesh.cz sudo journalctl -t bombur-deploy`
@@ -357,11 +365,19 @@ never rotated and never write the marker, so remove them by hand once used.
 - `/privacy/` must stay public and truthful. It now covers Google sign-in data, sign-in times,
   events, memberships and wishes (including the soft delete: Gifter keeps a copy of deleted
   wishes), claims, chip-in notes, and the purchased and received states, and who can see them
-  (the person whose wish it is never does). Only backups and the language cookie (Phase 4)
-  must still be added to `privacy.html` (and `PRIVACY_POLICY_UPDATED` bumped) BEFORE they ship.
+  (the person whose wish it is never does). It also covers the language cookie and one-off
+  maintenance copies. Its nightly-backup sentences (copies deleted after 14 days) appear only
+  while the marker `nightly-backups-since`, written by the first nightly backup, exists (see
+  "Backups and restore"). Any new kind of stored data must be added to `privacy.html` before it
+  ships, with `PRIVACY_POLICY_UPDATED` bumped.
 - The secrecy tests (`gifter/tests/test_secrecy.py`) run in the CI test job and block the build
   and the deploy when they fail, so a change that lets a giftee see claims cannot ship.
-- HSTS starts at 3600 s (`SECURE_HSTS_SECONDS`); raise it after a week of working HTTPS.
+- HSTS is one year (31536000 s, includeSubDomains, no preload), fixed in `web/settings.py` since
+  Phase 4. A `SECURE_HSTS_SECONDS` line left in the server `.env` is ignored and may be deleted.
+- Responses to signed-in users are sent with `Cache-Control: private, no-store`, so a shared
+  family phone does not show the previous person's pages from the cache or the back button.
+- `/healthz` is public and returns only `ok` (or 503 `unavailable` when the database does not
+  answer). It has no trailing slash on purpose; the deploy health check uses that exact path.
 - Backups and manual copies are described in "Backups and restore". Never copy `db.sqlite3`
   alone while the app runs (WAL). Remove manual copies once they have served their purpose:
   they keep the data of anyone deleted afterwards (see "Delete someone's account").
