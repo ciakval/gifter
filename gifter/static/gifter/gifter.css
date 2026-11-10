@@ -1,0 +1,37 @@
+/*
+ * Gifter's phone layer on top of stock Bootstrap (plan 04-04, D-05, D-07).
+ * It exists so relatives on phones get comfortable tap targets, wrapping text and stacked
+ * action buttons. It must stay free of colours, backgrounds and fonts: the look is stock
+ * Bootstrap, and nothing is loaded from another host.
+ */
+
+.btn,
+.nav-link,
+summary,
+.form-check-label,
+footer a {
+  min-height: 2.75rem;
+  display: inline-flex;
+  align-items: center;
+}
+
+.btn {
+  min-width: 2.75rem;
+  justify-content: center;
+}
+
+summary {
+  display: flex;
+}
+
+main {
+  overflow-wrap: anywhere;
+}
+
+/* Below Bootstrap's sm breakpoint (576px) every button in a d-grid group is full width. */
+@media (max-width: 575.98px) {
+  .d-grid .btn,
+  .d-grid form {
+    width: 100%;
+  }
+}

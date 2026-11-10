@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block head_title %}Gifter{% endblock %}</title>
   <link rel="stylesheet" href="{% static 'vendor/bootstrap/bootstrap.min.css' %}">
+  <link rel="stylesheet" href="{% static 'gifter/gifter.css' %}">
   {% block extra_head %}{% endblock %}
 </head>
 <body>
@@ -21,9 +22,9 @@
           <li class="nav-item"><a class="nav-link" href="{% url 'wishlist' %}">{% translate "My wishlist" %}</a></li>
           <li class="nav-item"><a class="nav-link" href="{% url 'my_claims' %}">{% translate "My claims" %}</a></li>
         </ul>
-        <div class="d-flex flex-column flex-sm-row align-items-sm-center">
+        <div class="d-flex flex-wrap gap-2 flex-column flex-sm-row align-items-sm-center">
           {% include "gifter/includes/language_switch.html" %}
-          <form method="post" action="{% url 'account_logout' %}" class="d-flex">
+          <form method="post" action="{% url 'account_logout' %}" class="d-flex flex-wrap gap-2">
             {% csrf_token %}
             <button type="submit" class="btn btn-link nav-link">{% translate "Sign out" %}</button>
           </form>
