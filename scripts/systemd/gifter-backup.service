@@ -1,0 +1,17 @@
+# Gifter nightly SQLite backup. Installed on Bombur by hand (DEPLOYMENT.md, "Backups and
+# restore"). The deploy user is in the docker group, which is root-equivalent on Bombur by
+# design (bombur-infra).
+[Unit]
+Description=Gifter nightly SQLite backup
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+User=deploy
+Group=deploy
+SupplementaryGroups=docker
+Environment=CONTAINER=gifter-web DEST=/home/deploy/backups/gifter KEEP=14
+ExecStart=/usr/local/bin/gifter-backup.sh
+NoNewPrivileges=yes
+PrivateTmp=yes

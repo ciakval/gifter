@@ -1,0 +1,11 @@
+# Nightly at 03:15, before the 04:30 unattended-upgrades reboot window.
+[Unit]
+Description=Run the Gifter nightly SQLite backup
+
+[Timer]
+OnCalendar=*-*-* 03:15:00 Europe/Prague
+Persistent=true
+Unit=gifter-backup.service
+
+[Install]
+WantedBy=timers.target

@@ -158,6 +158,7 @@ sudo -u deploy sh -c 'cd /home/deploy/DOCKER/gifter && docker compose logs -f'
 sudo -u deploy sh -c 'cd /home/deploy/DOCKER/gifter && docker compose restart'
 docker exec -ti gifter-web sh                          # shell in the container
 sudo journalctl -t bombur-deploy                       # deploy history
+sudo journalctl -u gifter-backup                       # nightly backup runs
 ```
 
 Make yourself staff after your first Google sign-in (there are no passwords, so there is
@@ -188,39 +189,45 @@ on his own wishes), so use `delete_user`:
    docker exec -ti gifter-web python manage.py delete_user <username>
    ```
 
-3. Make a pre-deletion copy of the live database, outside `./data`. `.backup` is consistent
-   while `gifter-web` runs and produces one self-contained file:
+3. Make a pre-deletion copy of the live database (outside the app directory, consistent
+   while `gifter-web` runs; see "Backups and restore"). Note the path it prints:
 
    ```sh
-   sudo -u deploy sqlite3 /home/deploy/DOCKER/gifter/data/db.sqlite3 \
-     ".backup /home/deploy/gifter-pre-deletion.sqlite3"
+   sudo -u deploy env PREFIX=pre-deletion /usr/local/bin/gifter-backup.sh
    ```
 
-   (Alternative without `sqlite3`: stop the container with `docker compose stop`, copy all
-   three files `db.sqlite3`, `db.sqlite3-wal` and `db.sqlite3-shm` from `./data` to a
-   directory outside `./data`, and start the container again with `docker compose up -d`.)
-   Then repeat the command with `--yes`:
+   Then repeat the dry-run command with `--yes`:
 
    ```sh
    docker exec -ti gifter-web python manage.py delete_user <username> --yes
    ```
 
+   Then VACUUM the live database, so pages freed by the deletion no longer hold the person's
+   rows:
+
+   ```sh
+   docker exec gifter-web sqlite3 -cmd ".timeout 20000" /app/data/db.sqlite3 "VACUUM;"
+   ```
+
 4. Verify: the dry run for the same username now fails with "Nobody was deleted", and
-   `bash scripts/smoke.sh https://gifter.remesh.cz` passes. If the check fails, stop the
-   container (`docker compose stop`), restore from the pre-deletion copy and start it again.
-   For the `.backup` copy, copy it over `./data/db.sqlite3` and delete the stale
-   `db.sqlite3-wal` and `db.sqlite3-shm` next to it, which belong to the database being
-   replaced. For the file-level copy, put all three files back. Either way make sure
-   `./data` stays owned by uid 1000.
-5. Once the check passes, remove the pre-deletion copy (`rm /home/deploy/gifter-pre-deletion.sqlite3`,
-   or all three files of the file-level copy). Reply to the person only after this step.
+   `bash scripts/smoke.sh https://gifter.remesh.cz` passes. If the check fails, restore from
+   the pre-deletion copy:
+
+   ```sh
+   sudo -u deploy /usr/local/bin/gifter-restore.sh <copy> --yes
+   ```
+
+5. Once the check passes, remove the pre-deletion copy (`sudo -u deploy rm <path printed in
+   step 3>`), then any `pre-restore-*` copy made during the request. Reply to the person only
+   after this step.
 
 The deletion is final, and cannot be undone, only once the pre-deletion copy is removed: until
 then the copy still holds the person's data. The same goes for any copy or backup of the
-database made before the deletion (an earlier manual copy as under Rules and gotchas, and the
-backups planned for Phase 4 once they exist): it still holds the person's data until it is
-removed or rotated. Remove earlier manual copies too, so that the promise in `/privacy/` (the
-account and everything Gifter stores about the person is deleted) holds.
+database made before the deletion: it still holds the person's data until it is
+removed or rotated. The nightly backups made before the deletion keep the person's data until they are
+deleted, at most 14 days later, as `/privacy/` says; the reply to the person may mention this.
+Remove earlier manual copies too, so that the promise in `/privacy/` (the account and
+everything Gifter stores about the person is deleted) holds.
 
 Deleting a user also removes their wishes (and any claims on them), their memberships, the
 claims they made (including other people's chip-ins on those claims), their own chip-ins and
@@ -232,6 +239,105 @@ Never delete people from a Django shell or `manage.py shell`: `delete()` echoes 
 counts, including claims, and the operator is also a giftee.
 
 Revoke CI's deploy access: delete the `gh-gifter` line in `/home/deploy/.ssh/authorized_keys`.
+
+## Backups and restore
+
+What runs: `gifter-backup.timer` starts `gifter-backup.service` every night at 03:15
+(Europe/Prague) as the `deploy` user. It runs `/usr/local/bin/gifter-backup.sh`, which takes an
+online `sqlite3 .backup` inside the running `gifter-web` container (the app keeps running),
+VACUUMs the copy, checks it with `PRAGMA integrity_check` and stores it as
+`/home/deploy/backups/gifter/gifter-YYYY-MM-DD-HHMMSS.sqlite3` (directory 700, files 600),
+outside the app directory. The 14 newest are kept and anything older than 14 days is deleted,
+matching `/privacy/`.
+
+The backups live on the same server. They protect against mistakes, bad deploys and bad
+migrations, not against losing the server. That is an accepted risk for this phase.
+
+### One-time install on Bombur
+
+After the image built from this phase is deployed (it carries the `sqlite3` tool), run from the
+repo checkout:
+
+```sh
+scp -P 10022 scripts/gifter-backup.sh scripts/gifter-restore.sh \
+  scripts/systemd/gifter-backup.service scripts/systemd/gifter-backup.timer \
+  ciakval@bombur.remesh.cz:/tmp/
+ssh -p 10022 ciakval@bombur.remesh.cz '
+  sudo install -m 755 /tmp/gifter-backup.sh /tmp/gifter-restore.sh /usr/local/bin/ &&
+  sudo install -m 644 /tmp/gifter-backup.service /tmp/gifter-backup.timer /etc/systemd/system/ &&
+  sudo systemctl daemon-reload &&
+  sudo systemctl enable --now gifter-backup.timer &&
+  sudo systemctl start gifter-backup.service &&
+  systemctl list-timers gifter-backup.timer --no-pager &&
+  sudo journalctl -u gifter-backup -n 5 --no-pager &&
+  sudo -u deploy ls -l /home/deploy/backups/gifter'
+```
+
+Re-run the same commands after the scripts change.
+
+### The privacy marker
+
+The first successful nightly run writes `/home/deploy/DOCKER/gifter/data/nightly-backups-since`
+(the app's `/app/data`), holding that day's date. From then on `/privacy/` says that Gifter is
+backed up every night and that nightly backups are deleted after 14 days, and its "Last
+updated" date is at least that date. Check it after the install with
+`sudo -u deploy docker exec gifter-web cat /app/data/nightly-backups-since` and by opening
+https://gifter.remesh.cz/privacy/. Never create or edit the marker by hand, and never copy it
+into another environment. If nightly backups are ever stopped for good (timer disabled and not
+coming back), delete the marker in the same step so `/privacy/` stops describing them, and ask
+Claude to review the policy.
+
+### Checking backups
+
+```sh
+systemctl list-timers gifter-backup.timer
+sudo journalctl -u gifter-backup -n 20 --no-pager     # expect "BACKUP OK"
+sudo -u deploy ls -l /home/deploy/backups/gifter
+```
+
+### Restore drill
+
+Safe, never touches production. Do it once before 1 Dec 2026 and after big changes:
+
+```sh
+sudo -u deploy /usr/local/bin/gifter-restore.sh --drill /home/deploy/backups/gifter/<newest file>
+```
+
+Expect one `DRILL OK ...` line with plausible numbers (users, events and wishes only). It
+starts a throwaway container from the live image on a fresh volume, restores into it, waits for
+the migrations check and removes container and volume again.
+
+#### Restore drill record
+
+| Date | Backup file | Result line | Done by |
+|---|---|---|---|
+| not yet run | not yet run | not yet run | |
+
+Replace the row with the real result and ask Claude to record it in STATE.
+
+### Real restore (emergency only)
+
+Dry run first, then `--yes`:
+
+```sh
+sudo -u deploy /usr/local/bin/gifter-restore.sh <file>
+sudo -u deploy /usr/local/bin/gifter-restore.sh <file> --yes
+```
+
+`--yes` saves a safety copy `pre-restore-*.sqlite3` first, restores online into the live
+database, restarts the container (the restart applies migrations to an older backup) and waits
+until `migrate --check` passes. A corrupt or foreign file is refused and nothing changes.
+Afterwards run `bash scripts/smoke.sh https://gifter.remesh.cz` and sign in to check your data,
+then delete the safety copy: it keeps the data of anyone deleted since.
+
+### Manual copies
+
+```sh
+sudo -u deploy env PREFIX=pre-deletion /usr/local/bin/gifter-backup.sh
+```
+
+Use another prefix (lowercase letters and dashes) if you like. Copies with another prefix are
+never rotated and never write the marker, so remove them by hand once used.
 
 ## Rules and gotchas
 
@@ -256,7 +362,6 @@ Revoke CI's deploy access: delete the `gh-gifter` line in `/home/deploy/.ssh/aut
 - The secrecy tests (`gifter/tests/test_secrecy.py`) run in the CI test job and block the build
   and the deploy when they fail, so a change that lets a giftee see claims cannot ship.
 - HSTS starts at 3600 s (`SECURE_HSTS_SECONDS`); raise it after a week of working HTTPS.
-- Backups of `./data` are planned for Phase 4. Until then, copy all three SQLite files
-  (`db.sqlite3`, `-wal`, `-shm`) together, or use `sqlite3 db.sqlite3 ".backup copy.sqlite3"`.
-  Remove such a copy once it has served its purpose: it keeps the data of anyone deleted
-  afterwards (see "Delete someone's account").
+- Backups and manual copies are described in "Backups and restore". Never copy `db.sqlite3`
+  alone while the app runs (WAL). Remove manual copies once they have served their purpose:
+  they keep the data of anyone deleted afterwards (see "Delete someone's account").
