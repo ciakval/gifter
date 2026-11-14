@@ -262,3 +262,115 @@ class EventPageLinkTests(DiscussionScenario, TestCase):
         self.assertNotContains(page, self.thread_url())
         self.assertNotContains(page, self.member_url(self.anna))
         self.assertContains(page, self.member_url(self.bob))
+
+
+class ValidationTests(DiscussionScenario, TestCase):
+    def setUp(self):
+        self.build()
+        self.client.force_login(self.bob)
+        self.client.post(self.thread_url(), {"body": "Earlier zork"})
+
+    def assert_rejected(self, body):
+        before = Comment.objects.count()
+        response = self.client.post(self.thread_url(), {"body": body})
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "invalid-feedback")
+        self.assertContains(response, "Earlier zork")
+        self.assertEqual(Comment.objects.count(), before)
+        self.assertEqual(Thread.objects.count(), 1)
+
+    def test_empty_whitespace_and_too_long_bodies_are_rejected(self):
+        self.assert_rejected("")
+        self.assert_rejected("   \n  ")
+        self.assert_rejected("x" * 1001)
+
+    def test_rejected_on_a_fresh_thread_creates_no_thread(self):
+        before = Thread.objects.count()
+        response = self.client.post(self.member_url(self.carol), {"body": ""})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(Thread.objects.count(), before)
+        self.assertEqual(Comment.objects.count(), 1)
+
+    def test_a_1000_character_body_is_accepted(self):
+        response = self.client.post(self.thread_url(), {"body": "ž" * 1000})
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(len(Comment.objects.latest("pk").body), 1000)
+
+    def test_windows_line_endings_become_newlines_and_edges_are_stripped(self):
+        self.client.post(self.thread_url(), {"body": "  one\r\ntwo\rthree  "})
+        self.assertEqual(Comment.objects.latest("pk").body, "one\ntwo\nthree")
+
+
+class OutputTests(DiscussionScenario, TestCase):
+    def setUp(self):
+        self.build()
+        self.client.force_login(self.bob)
+
+    def test_html_is_escaped_and_line_breaks_render(self):
+        self.client.post(self.thread_url(), {"body": "<script>alert(1)</script>\nsecond"})
+        page = self.client.get(self.thread_url())
+        self.assertContains(page, "&lt;script&gt;")
+        self.assertNotContains(page, "<script>alert(1)")
+        self.assertContains(page, "&lt;/script&gt;<br>second")
+
+    def test_comments_are_oldest_first_with_author_names(self):
+        thread = Thread.objects.create(event=self.e1, wish=self.wish, giftee=self.anna)
+        Comment.objects.create(thread=thread, author=self.carol, body="first zork")
+        Comment.objects.create(thread=thread, author=self.bob, body="second zork")
+        content = self.client.get(self.thread_url()).content.decode()
+        self.assertLess(content.index("first zork"), content.index("second zork"))
+        self.assertIn("Carol", content)
+        self.assertIn("Bob", content)
+
+
+class MethodAndLoginTests(DiscussionScenario, TestCase):
+    def setUp(self):
+        self.build()
+
+    def urls(self):
+        return [self.thread_url(), self.member_url(self.carol)]
+
+    def test_put_and_delete_are_not_allowed(self):
+        self.client.force_login(self.bob)
+        for url in self.urls():
+            self.assertEqual(self.client.put(url).status_code, 405)
+            self.assertEqual(self.client.delete(url).status_code, 405)
+
+    def test_signed_out_requests_go_to_the_landing_page_with_next(self):
+        for url in self.urls():
+            for response in (self.client.get(url), self.client.post(url, {"body": "x"})):
+                self.assertEqual(response.status_code, 302)
+                self.assertEqual(response["Location"], f"/?next={url}")
+        self.assertEqual(Thread.objects.count(), 0)
+
+
+class CzechTests(DiscussionScenario, TestCase):
+    def setUp(self):
+        self.build()
+        self.client.force_login(self.bob)
+
+    def test_thread_page_renders_czech_from_the_catalogue(self):
+        from gifter.tests.test_i18n import czech
+
+        page = self.client.get(self.thread_url(), headers={"accept-language": "cs"})
+        for msgid in (
+            "Discussion",
+            "Back to the event",
+            "No comments yet. Start the discussion.",
+            "Your comment",
+            "Post comment",
+        ):
+            self.assertNotEqual(czech(msgid), msgid)
+            self.assertContains(page, czech(msgid))
+        self.assertContains(page, czech("%(name)s will never see this discussion.") % {"name": "Anna"})
+        self.assertNotContains(page, "Post comment")
+        self.assertNotContains(page, "will never see this discussion")
+
+    def test_event_page_and_member_heading_are_czech(self):
+        from gifter.tests.test_i18n import czech
+
+        page = self.client.get(self.event_url(), headers={"accept-language": "cs"})
+        self.assertContains(page, czech("Discussion about this person"))
+        self.assertContains(page, czech("Discuss"))
+        member = self.client.get(self.member_url(self.carol), headers={"accept-language": "cs"})
+        self.assertContains(member, czech("Discussion: %(name)s") % {"name": "Carol"})

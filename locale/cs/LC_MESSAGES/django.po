@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gifter\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-10 09:02+0100\n"
+"POT-Creation-Date: 2026-11-14 12:10+0100\n"
 "PO-Revision-Date: 2026-11-10 09:00+0100\n"
 "Last-Translator: Gifter <gifter@remesh.cz>\n"
 "Language-Team: Czech\n"
@@ -64,6 +64,11 @@ msgstr "Zamluvení bylo zrušeno."
 msgid "You stopped chipping in."
 msgstr "Přispívání bylo ukončeno."
 
+#: gifter/discussion_views.py
+#, python-format
+msgid "Discussion: %(name)s"
+msgstr "Diskuse: %(name)s"
+
 #: gifter/forms.py
 #, python-format
 msgid "“%(value)s” is not a web address starting with http:// or https://."
@@ -89,6 +94,10 @@ msgstr "Jedna webová adresa na řádek."
 #: gifter/forms.py gifter/templates/gifter/includes/member_wish.html
 msgid "Note (optional)"
 msgstr "Poznámka (volitelná)"
+
+#: gifter/forms.py
+msgid "Your comment"
+msgstr "Tvůj komentář"
 
 #: gifter/models.py
 msgid "Unnamed member"
@@ -259,6 +268,27 @@ msgstr "Odhlásit se"
 msgid "Privacy policy"
 msgstr "Zásady ochrany osobních údajů"
 
+#: gifter/templates/gifter/discussion.html
+msgid "Discussion"
+msgstr "Diskuse"
+
+#: gifter/templates/gifter/discussion.html
+msgid "Back to the event"
+msgstr "Zpět na událost"
+
+#: gifter/templates/gifter/discussion.html
+#, python-format
+msgid "%(name)s will never see this discussion."
+msgstr "%(name)s tuhle diskusi nikdy neuvidí."
+
+#: gifter/templates/gifter/discussion.html
+msgid "No comments yet. Start the discussion."
+msgstr "Zatím tu nejsou žádné komentáře. Začni diskusi."
+
+#: gifter/templates/gifter/discussion.html
+msgid "Post comment"
+msgstr "Přidat komentář"
+
 #: gifter/templates/gifter/event_detail.html
 msgid "Want the others to see your wishes here?"
 msgstr "Chceš, aby tady ostatní viděli tvoje přání?"
@@ -327,6 +357,10 @@ msgstr "Přání"
 #: gifter/templates/gifter/event_detail.html
 msgid "No wishes shared here yet."
 msgstr "Zatím tu nikdo nesdílí žádná přání."
+
+#: gifter/templates/gifter/event_detail.html
+msgid "Discussion about this person"
+msgstr "Diskuse o této osobě"
 
 #: gifter/templates/gifter/event_form.html gifter/templates/gifter/home.html
 msgid "Create event"
@@ -440,6 +474,10 @@ msgstr "Přestat přispívat"
 #: gifter/templates/gifter/includes/member_wish.html
 msgid "I'll get this"
 msgstr "Pořídím to"
+
+#: gifter/templates/gifter/includes/member_wish.html
+msgid "Discuss"
+msgstr "Diskutovat"
 
 #: gifter/templates/gifter/includes/owner_wish.html
 msgid "Shared in"

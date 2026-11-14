@@ -134,6 +134,7 @@ TEMPLATE_GROUPS = {
     "event_detail.html": [["My wishlist", "Share all my wishes here"]],
     "wish_form.html": [["Save", "Add wish", "Cancel"]],
     "wish_confirm_delete.html": [["Delete", "Cancel"]],
+    "discussion.html": [["Post comment"]],
 }
 
 
