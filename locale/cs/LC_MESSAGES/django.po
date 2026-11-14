@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gifter\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-14 12:10+0100\n"
+"POT-Creation-Date: 2026-11-14 12:15+0100\n"
 "PO-Revision-Date: 2026-11-10 09:00+0100\n"
 "Last-Translator: Gifter <gifter@remesh.cz>\n"
 "Language-Team: Czech\n"
@@ -68,6 +68,10 @@ msgstr "Přispívání bylo ukončeno."
 #, python-format
 msgid "Discussion: %(name)s"
 msgstr "Diskuse: %(name)s"
+
+#: gifter/discussion_views.py
+msgid "Comment deleted."
+msgstr "Komentář byl smazán."
 
 #: gifter/forms.py
 #, python-format
@@ -282,6 +286,16 @@ msgid "%(name)s will never see this discussion."
 msgstr "%(name)s tuhle diskusi nikdy neuvidí."
 
 #: gifter/templates/gifter/discussion.html
+msgid "New"
+msgstr "Nové"
+
+#: gifter/templates/gifter/discussion.html
+#: gifter/templates/gifter/includes/owner_wish.html
+#: gifter/templates/gifter/wish_confirm_delete.html
+msgid "Delete"
+msgstr "Smazat"
+
+#: gifter/templates/gifter/discussion.html
 msgid "No comments yet. Start the discussion."
 msgstr "Zatím tu nejsou žádné komentáře. Začni diskusi."
 
@@ -359,8 +373,21 @@ msgid "No wishes shared here yet."
 msgstr "Zatím tu nikdo nesdílí žádná přání."
 
 #: gifter/templates/gifter/event_detail.html
+#, python-format
+msgid "Discussion about this person (%(counter)s comment)"
+msgid_plural "Discussion about this person (%(counter)s comments)"
+msgstr[0] "Diskuse o této osobě (%(counter)s komentář)"
+msgstr[1] "Diskuse o této osobě (%(counter)s komentáře)"
+msgstr[2] "Diskuse o této osobě (%(counter)s komentářů)"
+
+#: gifter/templates/gifter/event_detail.html
 msgid "Discussion about this person"
 msgstr "Diskuse o této osobě"
+
+#: gifter/templates/gifter/event_detail.html
+#: gifter/templates/gifter/includes/member_wish.html
+msgid "New since your last visit"
+msgstr "Nové od tvé poslední návštěvy"
 
 #: gifter/templates/gifter/event_form.html gifter/templates/gifter/home.html
 msgid "Create event"
@@ -476,6 +503,14 @@ msgid "I'll get this"
 msgstr "Pořídím to"
 
 #: gifter/templates/gifter/includes/member_wish.html
+#, python-format
+msgid "Discussion (%(counter)s comment)"
+msgid_plural "Discussion (%(counter)s comments)"
+msgstr[0] "Diskuse (%(counter)s komentář)"
+msgstr[1] "Diskuse (%(counter)s komentáře)"
+msgstr[2] "Diskuse (%(counter)s komentářů)"
+
+#: gifter/templates/gifter/includes/member_wish.html
 msgid "Discuss"
 msgstr "Diskutovat"
 
@@ -490,11 +525,6 @@ msgstr "Zatím není sdíleno v žádné události."
 #: gifter/templates/gifter/includes/owner_wish.html
 msgid "Edit"
 msgstr "Upravit"
-
-#: gifter/templates/gifter/includes/owner_wish.html
-#: gifter/templates/gifter/wish_confirm_delete.html
-msgid "Delete"
-msgstr "Smazat"
 
 #: gifter/templates/gifter/includes/owner_wish.html
 msgid "Reopen"
@@ -696,6 +726,49 @@ msgid ""
 msgstr ""
 "Než Gifter přidá funkci, která o tobě ukládá víc, bude tato stránka nejdřív "
 "upravena, aby uvedla, co se ukládá a kdo to uvidí."
+
+#: gifter/templates/gifter/privacy.html
+msgid "Discussions"
+msgstr "Diskuse"
+
+#: gifter/templates/gifter/privacy.html
+msgid ""
+"When you write a comment on someone else's wish, or in the discussion about "
+"a person, inside an event, Gifter stores the text, who wrote it, when, and "
+"which event and wish or person it belongs to. Gifter also remembers when you "
+"last opened each discussion, so it can show you what is new. Gifter sends no "
+"notifications or emails about comments."
+msgstr ""
+"Když napíšeš komentář k cizímu přání nebo do diskuse o některém člověku v "
+"rámci události, Gifter uloží text, kdo ho napsal, kdy a ke které události a "
+"ke kterému přání nebo člověku patří. Gifter si také pamatuje, kdy byla která "
+"diskuse u tebe naposledy otevřená, aby ti mohl ukázat, co je nové. Gifter k "
+"žádným komentářům neposílá upozornění ani e-maily."
+
+#: gifter/templates/gifter/privacy.html
+msgid ""
+"The person whose wish it is, and the person a discussion is about, never "
+"sees the discussion: not the comments, not how many there are, and not even "
+"that the discussion exists. Every other member of the event can read it and "
+"sees who wrote each comment."
+msgstr ""
+"Ten, komu přání patří, a ten, o kom diskuse je, diskusi nikdy neuvidí: ani "
+"komentáře, ani jejich počet, ani to, že diskuse vůbec existuje. Všichni "
+"ostatní členové události ji mohou číst a vidí, kdo který komentář napsal."
+
+#: gifter/templates/gifter/privacy.html
+msgid ""
+"You can delete your own comments at any time, and they are then removed from "
+"Gifter's database. Nobody can edit a comment. Discussions on wishes that are "
+"deleted or no longer shared stay in Gifter's database but are no longer "
+"shown. To have them erased, use the data request described under Keeping and "
+"deleting your data below."
+msgstr ""
+"Své komentáře můžeš kdykoli smazat a zmizí z databáze Gifteru. Komentáře "
+"nikdo nemůže upravovat. Diskuse u přání, která byla smazána nebo už nejsou "
+"sdílená, zůstávají v databázi Gifteru, ale už se nezobrazují. Pokud chceš, "
+"aby byly vymazány, použij žádost o údaje popsanou níže v části Uchovávání a "
+"mazání tvých údajů."
 
 #: gifter/templates/gifter/privacy.html
 msgid "What Gifter does not get"

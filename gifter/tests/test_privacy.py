@@ -46,6 +46,12 @@ REQUIRED_PHRASES = [
     "for up to a year",
     "one-off copy",
     "deletes it by hand",
+    "Discussions",
+    "last opened each discussion",
+    "no notifications or emails",
+    "never sees the discussion",
+    "not even that the discussion exists",
+    "Nobody can edit a comment",
 ]
 
 # Sentences that are only true once a nightly backup exists; shown only while

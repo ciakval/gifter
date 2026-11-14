@@ -26,7 +26,7 @@ from .models import Event, Membership, Wish
 
 # Bump whenever privacy.html changes. The policy must be updated BEFORE a feature that
 # stores or shows new kinds of data ships (see DEPLOYMENT.md).
-PRIVACY_POLICY_UPDATED = datetime.date(2026, 11, 10)
+PRIVACY_POLICY_UPDATED = datetime.date(2026, 11, 14)
 
 # File in DATA_DIR written once by scripts/gifter-backup.sh (plan 04-02) after the first
 # successful NIGHTLY backup, never by manual copies. While it is missing or not a valid

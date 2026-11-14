@@ -186,6 +186,32 @@ class PluralTests(TestCase):
         for text in texts.values():
             self.assertNotIn("member", text)
 
+    def comment_label(self, n, prefix):
+        template = Template(
+            "{% load i18n %}{% blocktranslate count counter=n %}"
+            + prefix
+            + " ({{ counter }} comment){% plural %}"
+            + prefix
+            + " ({{ counter }} comments){% endblocktranslate %}"
+        )
+        return template.render(Context({"n": n}))
+
+    def check_comment_label(self, prefix):
+        with translation.override("cs"):
+            texts = {n: self.comment_label(n, prefix) for n in (0, 1, 2, 4, 5, 11, 21)}
+        bare = {n: re.sub(r"\d+", "", text) for n, text in texts.items()}
+        self.assertEqual(len({bare[1], bare[2], bare[5]}), 3)
+        self.assertEqual(bare[2], bare[4])
+        self.assertEqual({bare[5], bare[11], bare[21], bare[0]}, {bare[5]})
+        for text in texts.values():
+            self.assertNotIn("comment", text)
+
+    def test_wish_card_comment_count_has_three_czech_forms(self):
+        self.check_comment_label("Discussion")
+
+    def test_member_card_comment_count_has_three_czech_forms(self):
+        self.check_comment_label("Discussion about this person")
+
     def test_wish_share_message_is_translated_for_1_2_5(self):
         singular = "%(count)d wish is shared here now."
         plural = "%(count)d wishes are shared here now."
