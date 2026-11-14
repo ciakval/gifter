@@ -2,17 +2,17 @@
 gsd_state_version: "1.0"
 current_phase: 5
 current_phase_name: Secret Discussions
-status: executing
-stopped_at: Completed 05-02-PLAN.md
-last_updated: "2026-11-14T11:16:04.089Z"
+status: verifying
+stopped_at: Completed 05-03-PLAN.md
+last_updated: "2026-11-14T11:21:34.490Z"
 last_activity: 2026-11-14
 last_activity_desc: Phase 5 execution started
-state_head: fda30ac88115d5d26c22ad8944052edbb1ddcb3b
+state_head: c6b1048b0d1bce9880539c7b041d0eccf05220ef
 progress:
   total_phases: 5
   completed_phases: 0
   total_plans: 21
-  completed_plans: 20
+  completed_plans: 21
   percent: 0
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-10-16)
 
 Phase: 5 (Secret Discussions) — EXECUTING
 Plan: 3 of 3
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-11-14 — Phase 5 execution started
 
 Progress: [░░░░░░░░░░] 0%
@@ -71,6 +71,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 03 P03 | 35min | 3 tasks | 7 files |
 | Phase 05 P01 | 35min | 3 tasks | 14 files |
 | Phase 05 P02 | 25min | 3 tasks | 14 files |
+| Phase 05 P03 | 35min | 3 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -111,6 +112,7 @@ Recent decisions affecting current work:
 - [Phase 03]: Sensitivity test patches delete on GifterUserAdmin and both identity admins: identity-row users get a plain cannot-delete page, a second layer
 - [Phase 05]: Discussion models use related_name '+' so no accessor reaches threads from Wish, Event or User
 - [Phase 05]: 05-02: read receipt written inside _read after the gate; summaries_for excludes threads about the viewer in the query (max 3 queries); comments hard-deleted
+- [Phase 05]: Discussion data lives in add_claims (add_discussions) so every secrecy detector covers it; claim_state_markers also returns discussion markers
 
 ### Roadmap Evolution
 
@@ -150,6 +152,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-11-14T11:16:03.952Z
-Stopped at: Completed 05-02-PLAN.md
+Last session: 2026-11-14T11:21:34.347Z
+Stopped at: Completed 05-03-PLAN.md
 Resume file: None

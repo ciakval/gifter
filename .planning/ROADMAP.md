@@ -159,7 +159,7 @@ Plans:
   4. An author can delete their own comment. Nobody can edit a comment.
   5. The giftee cannot find out that a thread or comment exists, through any page, count, marker, URL, POST response or admin view. The secrecy suite proves it, including the giftee who is also a giver in the same event, and a staff giftee.
 
-**Plans:** 2/3 plans executed
+**Plans:** 3/3 plans executed
 
 Plans:
 **Wave 1**
@@ -169,7 +169,7 @@ Plans:
 - [x] 05-02-PLAN.md — "New since your last visit" markers and counts with Czech plurals, delete-own comment (no edit), privacy policy in EN + CS *(after 05-01)*
 
 **Wave 3** *(blocked on Wave 2 completion)*
-- [ ] 05-03-PLAN.md — Secrecy suite for discussions (sentinel comments, byte-identical crawl, uniform-404 matrix, giftee-as-giver, staff giftee, comment-leak mutant, Czech pass), delete_user and DEPLOYMENT.md for comments *(after 05-02)*
+- [x] 05-03-PLAN.md — Secrecy suite for discussions (sentinel comments, byte-identical crawl, uniform-404 matrix, giftee-as-giver, staff giftee, comment-leak mutant, Czech pass), delete_user and DEPLOYMENT.md for comments *(after 05-02)*
 **UI hint**: yes
 **Notes:** Decisions from brainstorming on 2026-11-14: threads are per event; user-level discussion is included; delete-own yes, edit no; last-visit marker yes, notifications no. Comment text joins the secrecy suite's sentinels. Update the privacy policy (EN + CS) and `delete_user` for comments. All strings in Czech too.
 
@@ -184,4 +184,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 2. Events, Wishlists & Browsing | 2/2 | In Progress | - |
 | 3. Secret Claims & Gift Lifecycle | 3/3 | In Progress | - |
 | 4. Family Launch | 5/5 | Deployed, UAT pending | - |
-| 5. Secret Discussions | 2/3 | Not planned | - |
+| 5. Secret Discussions | 3/3 | Not planned | - |
