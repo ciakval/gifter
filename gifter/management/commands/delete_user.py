@@ -5,9 +5,11 @@ from django.core.management.base import BaseCommand, CommandError
 class Command(BaseCommand):
     help = (
         "Delete one user and everything Gifter stores about them, for data requests from "
-        "/privacy/. USERNAME is the username shown in the admin user list. It is a dry run "
-        "unless --yes is given. The output never says what was deleted with the user, because "
-        "the operator is also a giftee and must not learn who claimed or chipped in on a wish. "
+        "/privacy/. This removes their wishes, claims and chip-ins, their comments, the "
+        "discussions about them or on their wishes (with everyone's comments in those "
+        "discussions) and their read receipts. USERNAME is the username shown in the admin "
+        "user list. It is a dry run unless --yes is given. The output never says what was "
+        "deleted with the user, because the operator is also a giftee and must not learn who claimed or chipped in on a wish. "
         "The command refuses to delete the last active staff account (a command line has no "
         "signed-in user, so this stands in for a self-deletion check and keeps the admin "
         "reachable)."
@@ -40,7 +42,9 @@ class Command(BaseCommand):
             self.stdout.write(f"{description}. Nothing was deleted; run again with --yes to delete.")
             return
 
-        # delete() returns per-model counts, claims included; they are discarded on purpose.
+        # The cascade also removes the user's comments, the discussions about them or on their
+        # wishes (every comment in them) and their read receipts. delete() returns per-model
+        # counts, claims and comments included; they are discarded on purpose.
         user.delete()
         self.stdout.write(
             self.style.SUCCESS(f"Deleted {description} and everything Gifter stored about them.")

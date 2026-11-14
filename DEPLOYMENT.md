@@ -187,7 +187,10 @@ The admin lives at `/gifter-admin/` (its own login redirects to Google sign-in).
 
 `/privacy/` promises that a person's account and everything Gifter stores about them can be
 deleted on request. The admin cannot do it (its deletion summary would show the author claims
-on his own wishes), so use `delete_user`:
+on his own wishes), so use `delete_user`. Deleting a person removes their account, wishes,
+claims and chip-ins, their comments, the discussions about them and on their wishes (with
+everyone's comments in those discussions) and their read receipts. The command's output never
+depends on claims or discussions, because the operator is also a giftee:
 
 1. Find the person at `/gifter-admin/gifter/user/` (search by name or email) and note the
    username.
@@ -357,21 +360,28 @@ never rotated and never write the marker, so remove them by hand once used.
   accounts and Email addresses are view only. Users cannot be deleted in the admin, and the
   user list refuses filters on related rows such as claims, because both would show the
   author claims on his own wishes. People are deleted with `delete_user` (see "Delete
-  someone's account"). Wishes and claims are never in the admin: the author is staff and
-  also a giftee.
+  someone's account"). Wishes, claims and discussions are never in the admin: the author is
+  staff and also a giftee.
 - Only seven `accounts/` routes exist (Google sign-in, sign-out, cancelled, error and the
   sign-up fallback). A test pins the list; everything else under `accounts/` is 404.
 - Rotating `SECRET_KEY` signs everyone out.
 - `/privacy/` must stay public and truthful. It now covers Google sign-in data, sign-in times,
   events, memberships and wishes (including the soft delete: Gifter keeps a copy of deleted
   wishes), claims, chip-in notes, and the purchased and received states, and who can see them
-  (the person whose wish it is never does). It also covers the language cookie and one-off
+  (the person whose wish it is never does). It also lists discussions and comments among
+  what it covers: only the other members of the event can read them, and the person a
+  discussion is about never can. It also covers the language cookie and one-off
   maintenance copies. Its nightly-backup sentences (copies deleted after 14 days) appear only
   while the marker `nightly-backups-since`, written by the first nightly backup, exists (see
   "Backups and restore"). Any new kind of stored data must be added to `privacy.html` before it
   ships, with `PRIVACY_POLICY_UPDATED` bumped.
 - The secrecy tests (`gifter/tests/test_secrecy.py`) run in the CI test job and block the build
-  and the deploy when they fail, so a change that lets a giftee see claims cannot ship.
+  and the deploy when they fail, so a change that lets a giftee see claims cannot ship. The
+  suite also covers discussion data (threads, comments, read receipts), in English and Czech.
+- Opening a discussion records the opener's own read receipt (a `ThreadVisit` row). It is the
+  only write on a GET in the app: it is needed to clear the "New since your last visit" marker
+  the moment the thread is read, it touches only the viewer's own row, and it runs only after
+  the access check has passed.
 - HSTS is one year (31536000 s, includeSubDomains, no preload), fixed in `web/settings.py` since
   Phase 4. A `SECURE_HSTS_SECONDS` line left in the server `.env` is ignored and may be deleted.
 - Responses to signed-in users are sent with `Cache-Control: private, no-store`, so a shared

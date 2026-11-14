@@ -27,7 +27,16 @@ from gifter.tests.test_auth import (
     GoogleRoundTripMixin,
     fake_get_access_token,
 )
-from gifter.models import Claim, Contribution, Event, Membership, Wish
+from gifter.models import (
+    Claim,
+    Comment,
+    Contribution,
+    Event,
+    Membership,
+    Thread,
+    ThreadVisit,
+    Wish,
+)
 from gifter.tests.test_events import join, make_event
 from gifter.tests.test_wishes import make_wish
 
@@ -182,6 +191,18 @@ class DeleteUserCommandTests(TestCase):
         claim = Claim.objects.create(wish=self.wish_a, claimer=self.bob)
         Contribution.objects.create(claim=claim, user=self.carl, note="from carl")
         Claim.objects.create(wish=self.wish_b, claimer=self.carl)
+        # Discussions (Phase 5): the output must not depend on any of this either.
+        self.thread_a = Thread.objects.create(event=self.event, wish=self.wish_a, giftee=self.anna)
+        Comment.objects.create(thread=self.thread_a, author=self.bob, body="bob on the lamp")
+        self.carl_comment = Comment.objects.create(
+            thread=self.thread_a, author=self.carl, body="carl on the lamp"
+        )
+        self.member_thread = Thread.objects.create(event=self.event, wish=None, giftee=self.bob)
+        Comment.objects.create(thread=self.member_thread, author=self.carl, body="carl on bob")
+        self.thread_b = Thread.objects.create(event=self.event, wish=self.wish_b, giftee=self.bob)
+        Comment.objects.create(thread=self.thread_b, author=self.carl, body="carl on the hat")
+        ThreadVisit.objects.create(thread=self.thread_a, user=self.bob)
+        self.carl_visit = ThreadVisit.objects.create(thread=self.thread_a, user=self.carl)
 
     def run_command(self, *args):
         out = StringIO()
@@ -223,6 +244,30 @@ class DeleteUserCommandTests(TestCase):
         self.assertTrue(Wish.objects.filter(pk=self.wish_a.pk).exists())
         event = Event.objects.get(pk=self.event.pk)
         self.assertIsNone(event.created_by)
+
+    def test_yes_deletes_comments_discussions_and_read_receipts(self):
+        self.add_claims()
+        self.run_command("bob", "--yes")
+        self.assertFalse(Comment.objects.filter(author_id=self.bob.pk).exists())
+        self.assertFalse(Thread.objects.filter(pk=self.member_thread.pk).exists())
+        self.assertFalse(Thread.objects.filter(pk=self.thread_b.pk).exists())
+        self.assertFalse(Comment.objects.filter(body__in=["carl on bob", "carl on the hat"]).exists())
+        self.assertFalse(ThreadVisit.objects.filter(user_id=self.bob.pk).exists())
+        self.assertTrue(Thread.objects.filter(pk=self.thread_a.pk).exists())
+        self.assertTrue(Comment.objects.filter(pk=self.carl_comment.pk).exists())
+        self.assertTrue(ThreadVisit.objects.filter(pk=self.carl_visit.pk).exists())
+        self.assertEqual(Thread.objects.count(), 1)
+        self.assertEqual(Comment.objects.count(), 1)
+        self.assertEqual(ThreadVisit.objects.count(), 1)
+
+    def test_dry_run_keeps_every_comment(self):
+        self.add_claims()
+        before = (Thread.objects.count(), Comment.objects.count(), ThreadVisit.objects.count())
+        self.assertEqual(before, (3, 4, 2))
+        self.run_command("bob")
+        self.assertEqual(
+            before, (Thread.objects.count(), Comment.objects.count(), ThreadVisit.objects.count())
+        )
 
     def test_output_is_identical_with_and_without_claims(self):
         for args in (("bob",), ("bob", "--yes")):
