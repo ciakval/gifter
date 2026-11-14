@@ -66,8 +66,8 @@ Requirements for the Christmas 2026 release. Each maps to roadmap phases.
 
 ### Secret Discussions
 
-- [ ] **DISC-01**: Every event member except the wish's owner can read and post comments on a wish, in a thread that belongs to that wish within that event
-- [ ] **DISC-02**: Every event member except the giftee can read and post in a discussion about that giftee within the event
+- [x] **DISC-01**: Every event member except the wish's owner can read and post comments on a wish, in a thread that belongs to that wish within that event
+- [x] **DISC-02**: Every event member except the giftee can read and post in a discussion about that giftee within the event
 - [ ] **DISC-03**: A viewer sees a "new since your last visit" marker on threads with comments they have not seen (no notifications); authors can delete their own comments, nobody can edit
 - [ ] **DISC-04**: Automated tests prove the giftee cannot learn that any thread or comment about them exists (pages, counts, markers, URLs, POST responses, admin; incl. giftee-as-giver and staff giftee)
 
@@ -154,8 +154,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | LIFE-03 | Phase 3 | Complete |
 | I18N-01 | Phase 4 | Pending |
 | I18N-02 | Phase 4 | Pending |
-| DISC-01 | Phase 5 | Pending |
-| DISC-02 | Phase 5 | Pending |
+| DISC-01 | Phase 5 | Complete |
+| DISC-02 | Phase 5 | Complete |
 | DISC-03 | Phase 5 | Pending |
 | DISC-04 | Phase 5 | Pending |
 
