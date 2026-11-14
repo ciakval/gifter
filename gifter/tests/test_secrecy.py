@@ -71,7 +71,7 @@ import gifter
 from allauth.account.models import EmailAddress
 from allauth.socialaccount.models import SocialAccount
 
-from gifter import claims
+from gifter import claims, discussions
 from gifter.admin import (
     GifterUserAdmin,
     ReadOnlyEmailAddressAdmin,
@@ -396,9 +396,13 @@ def staff_admin_probes(fx):
     for relation in get_user_model()._meta.related_objects:
         add(f"filter {relation.name} isnull", "GET", f"/gifter-admin/gifter/user/?{relation.name}__isnull=False")
         add(f"filter {relation.name} pk", "GET", f"/gifter-admin/gifter/user/?{relation.name}=2")
+    # Discussion tables have only hidden relations to User, so related_objects does not list them;
+    # probe their lookup names explicitly (Phase 5, T-05-11).
+    for lookup in ("thread", "comment", "threadvisit"):
+        add(f"filter {lookup} isnull", "GET", f"/gifter-admin/gifter/user/?{lookup}__isnull=False")
     add("filter is_staff", "GET", "/gifter-admin/gifter/user/?is_staff__exact=1")
     add("filter group", "GET", f"/gifter-admin/gifter/user/?groups__id__exact={group.pk}")
-    for model in (Claim, Contribution):
+    for model in (Claim, Contribution, Thread, Comment, ThreadVisit):
         content_type = ContentType.objects.get_for_model(model)
         for n in range(1, 9):
             add(f"shortcut {model.__name__} {n}", "GET", f"/gifter-admin/r/{content_type.pk}/{n}/")
@@ -1095,7 +1099,7 @@ class StaffGifteeTests(SecrecyMixin, TestCase):
                     collector = NestedObjects(using="default")
                     collector.collect([obj])
                     models = set(collector.model_objs) | {type(r) for r in collector.protected}
-                    if models & {Claim, Contribution}:
+                    if models & {Claim, Contribution, Thread, Comment, ThreadVisit}:
                         reaching.add(model)
                         with self.subTest(model=model.__name__, pk=obj.pk):
                             self.assertFalse(model_admin.has_delete_permission(request, obj))
@@ -1155,6 +1159,271 @@ class StaffGifteeTests(SecrecyMixin, TestCase):
             for user in users:
                 self.assertTrue(get_user_model().objects.filter(pk=user.pk).exists())
 
+class DiscussionUniformNotFoundTests(SecrecyMixin, TestCase):
+    """Gita (and an outsider) get one bare 404 for every discussion URL, on GET and POST, and no
+    thread, comment or read receipt is created, changed or deleted along the way (D-05)."""
+
+    def wish_cases(self):
+        fx = self.fx
+        return (
+            (fx.e1.pk, fx.w1.pk),  # own, discussed
+            (fx.e2.pk, fx.w1.pk),  # own, other event
+            (fx.e1.pk, fx.w2.pk),
+            (fx.e2.pk, fx.w3.pk),
+            (fx.e1.pk, fx.w4.pk),  # received
+            (fx.e1.pk, fx.w5.pk),  # withdrawn
+            (fx.e1.pk, fx.w6.pk),  # never shared
+            (fx.e1.pk, 999999),
+            (999999, fx.w1.pk),
+            (fx.e9.pk, fx.wo.pk),  # not her event
+        )
+
+    def member_cases(self):
+        fx = self.fx
+        return (
+            (fx.e1.pk, fx.gita.pk),  # herself
+            (fx.e2.pk, fx.gita.pk),
+            (fx.e1.pk, fx.oscar.pk),  # not a member
+            (fx.e1.pk, 999999),
+            (999999, fx.carl.pk),
+            (fx.e9.pk, fx.oscar.pk),  # not her event
+        )
+
+    def requests(self):
+        """(method, path) for every request in the matrix."""
+        out = []
+        for event_pk, wish_pk in self.wish_cases():
+            path = reverse("wish_discussion", args=[event_pk, wish_pk])
+            out += [("GET", path), ("POST", path)]
+        for event_pk, user_pk in self.member_cases():
+            path = reverse("member_discussion", args=[event_pk, user_pk])
+            out += [("GET", path), ("POST", path)]
+        comment_pks = set(
+            Comment.objects.filter(thread__giftee=self.fx.gita).values_list("pk", flat=True)
+        )
+        comment_pks.add(Comment.objects.get(author=self.fx.sam, thread__wish=self.fx.wo).pk)
+        comment_pks.add(self.fx.base_comment.pk)
+        comment_pks.add(999999)
+        for pk in sorted(comment_pks):
+            out.append(("POST", reverse("comment_delete", args=[pk])))
+        return out
+
+    def rows(self):
+        return (
+            list(Thread.objects.order_by("pk").values_list("pk", "event_id", "wish_id", "giftee_id")),
+            list(Comment.objects.order_by("pk").values_list("pk", "thread_id", "author_id", "body")),
+            list(
+                ThreadVisit.objects.order_by("pk").values_list(
+                    "pk", "thread_id", "user_id", "last_seen_at"
+                )
+            ),
+        )
+
+    def request(self, user, method, path):
+        client = fresh_client(user)
+        if method == "GET":
+            return client.get(path)
+        return client.post(path, {"body": "Zqxsentinel hello"})
+
+    def test_every_request_gets_the_same_404_and_changes_nothing(self):
+        with with_claims(self.fx):
+            before = self.rows()
+            reference = fresh_client(self.fx.gita).post("/claims/999999/release/")
+            self.assertEqual(reference.status_code, 404)
+            requests = self.requests()
+            self.assertGreater(len(requests), 30)
+            for method, path in requests:
+                with self.subTest(method=method, path=path):
+                    response = self.request(self.fx.gita, method, path)
+                    self.assertEqual(response.status_code, 404)
+                    self.assertEqual(response.content, reference.content)
+            for path in (
+                reverse("wish_discussion", args=[self.fx.e1.pk, self.fx.w1.pk]),
+                reverse("member_discussion", args=[self.fx.e1.pk, self.fx.gita.pk]),
+            ):
+                with self.subTest(outsider=path):
+                    response = self.request(self.fx.oscar, "POST", path)
+                    self.assertEqual(response.status_code, 404)
+                    self.assertEqual(response.content, reference.content)
+            # Equal rows include every last_seen_at: a refused GET wrote no read receipt.
+            self.assertEqual(self.rows(), before)
+
+    def test_the_matrix_covers_the_three_url_names_and_both_methods(self):
+        with with_claims(self.fx):
+            requests = self.requests()
+        seen = {(resolve(urlsplit(path).path).url_name, method) for method, path in requests}
+        self.assertEqual(
+            seen,
+            {
+                ("wish_discussion", "GET"),
+                ("wish_discussion", "POST"),
+                ("member_discussion", "GET"),
+                ("member_discussion", "POST"),
+                ("comment_delete", "POST"),
+            },
+        )
+
+
+class GifteeAsGiverTests(SecrecyMixin, TestCase):
+    """Gita is a giver in E1 and also the giftee of her own wishes in the same event (T-05-14)."""
+
+    def own_paths(self):
+        fx = self.fx
+        return [
+            reverse("wish_discussion", args=[fx.e1.pk, fx.w1.pk]),
+            reverse("wish_discussion", args=[fx.e1.pk, fx.w2.pk]),
+            reverse("member_discussion", args=[fx.e1.pk, fx.gita.pk]),
+        ]
+
+    def test_she_can_read_and_post_on_other_threads(self):
+        fx = self.fx
+        client = fresh_client(fx.gita)
+        wish_path = reverse("wish_discussion", args=[fx.e1.pk, fx.wc.pk])
+        response = client.get(wish_path)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(fx.base_comment.body, body_of(response))
+        posted = client.post(wish_path, {"body": "Gita on the board game"})
+        self.assertEqual(posted.status_code, 302)
+        member_path = reverse("member_discussion", args=[fx.e1.pk, fx.carl.pk])
+        posted = client.post(member_path, {"body": "Gita on Carl"})
+        self.assertEqual(posted.status_code, 302)
+        self.assertEqual(
+            sorted(Comment.objects.filter(author=fx.gita).values_list("body", flat=True)),
+            ["Gita on Carl", "Gita on the board game"],
+        )
+
+    def test_her_own_threads_stay_a_bare_404_and_refused_posts_flash_nothing(self):
+        fx = self.fx
+        for state in (False, True):
+            sid = transaction.savepoint()
+            try:
+                if state:
+                    add_claims(fx)
+                before = (Thread.objects.count(), Comment.objects.count())
+                reference = fresh_client(fx.gita).post("/claims/999999/release/")
+                for path in self.own_paths():
+                    for method in ("GET", "POST"):
+                        with self.subTest(path=path, method=method, discussions=state):
+                            client = fresh_client(fx.gita)
+                            if method == "GET":
+                                response = client.get(path)
+                            else:
+                                response = client.post(path, {"body": "Zqxsentinel hello"})
+                            self.assertEqual(response.status_code, 404)
+                            self.assertEqual(response.content, reference.content)
+                            following = client.get(reverse("wishlist"))
+                            self.assertEqual(list(following.context["messages"]), [])
+                self.assertEqual((Thread.objects.count(), Comment.objects.count()), before)
+            finally:
+                transaction.savepoint_rollback(sid)
+
+    def test_her_wishlist_is_identical_with_and_without_discussions_after_she_posts(self):
+        fx = self.fx
+        client = fresh_client(fx.gita)
+        client.post(reverse("wish_discussion", args=[fx.e1.pk, fx.wc.pk]), {"body": "Gita here"})
+        client.post(reverse("member_discussion", args=[fx.e1.pk, fx.carl.pk]), {"body": "Gita too"})
+        probe = next(p for p in probes(fx) if p.label == "wishlist GET")
+        self.assertEqual(snapshot(fx, probe, False), snapshot(fx, probe, True))
+
+    def test_her_event_page_names_no_thread_about_her_and_no_marker_on_her_wishes(self):
+        fx = self.fx
+        probe = next(p for p in probes(fx) if p.label == "event_detail E1 GET")
+        with with_claims(fx):
+            body = body_of(perform(fx.gita, probe))
+        forbidden = [reverse("member_discussion", args=[fx.e1.pk, fx.gita.pk])]
+        forbidden += [
+            reverse("wish_discussion", args=[fx.e1.pk, wish.pk])
+            for wish in (fx.w1, fx.w2, fx.w4, fx.w5)
+        ]
+        for url in forbidden:
+            self.assertNotIn(url, body)
+        # The legitimate links to other members' threads are on the same page.
+        self.assertIn(reverse("wish_discussion", args=[fx.e1.pk, fx.wc.pk]), body)
+        self.assertIn(reverse("member_discussion", args=[fx.e1.pk, fx.carl.pk]), body)
+        regions = own_wish_regions("event", body)
+        self.assertEqual(len(regions), 1)
+        self.assertEqual(claim_state_markers(regions[0]), [])
+
+
+class DiscussionOwnerQueryTests(SecrecyMixin, TestCase):
+    # event_detail E2 is not listed on purpose: event pages read the thread tables for other
+    # members' cards by design. Their protection is the viewer exclusion, proved by the
+    # byte-identical, chokepoint and summary tests, not by an absent query.
+    LABELS = OwnerQueryTests.LABELS - {"event_detail E2 GET"}
+
+    def discussion_probes(self):
+        return [
+            p
+            for p in probes(self.fx)
+            if p.label.startswith(("wish_discussion", "member_discussion"))
+            and (" own" in p.label or " self" in p.label)
+        ]
+
+    def test_owner_pages_and_refused_discussion_requests_never_query_discussion_tables(self):
+        selected = [p for p in probes(self.fx) if p.label in self.LABELS]
+        self.assertEqual({p.label for p in selected}, self.LABELS)
+        refused = self.discussion_probes()
+        self.assertEqual(len(refused), 8)
+        with with_claims(self.fx):
+            for probe in selected + refused:
+                with self.subTest(probe=probe.label):
+                    with CaptureQueriesContext(connection) as captured:
+                        response = perform(self.fx.gita, probe)
+                    self.assertLess(response.status_code, 500)
+                    self.assertTrue(captured.captured_queries)
+                    for query in captured.captured_queries:
+                        sql = query["sql"].lower()
+                        for table in ("gifter_thread", "gifter_comment", "gifter_threadvisit"):
+                            self.assertNotIn(table, sql)
+
+
+class DiscussionChokepointTests(SecrecyMixin, TestCase):
+    def test_the_chokepoint_refuses_the_giftee_and_writes_nothing(self):
+        fx = self.fx
+        with with_claims(fx):
+            before = (Thread.objects.count(), Comment.objects.count(), ThreadVisit.objects.count())
+            for call in (
+                lambda: discussions.read_wish_thread(fx.gita, fx.e1, fx.w1),
+                lambda: discussions.post_wish_comment(fx.gita, fx.e1, fx.w1, "x"),
+                lambda: discussions.read_member_thread(fx.gita, fx.e1, fx.gita),
+                lambda: discussions.post_member_comment(fx.gita, fx.e1, fx.gita, "x"),
+            ):
+                with self.assertRaises(claims.SecrecyViolation):
+                    call()
+            self.assertEqual(
+                before,
+                (Thread.objects.count(), Comment.objects.count(), ThreadVisit.objects.count()),
+            )
+
+    def test_summaries_hold_only_her_legitimate_view(self):
+        fx = self.fx
+        with with_claims(fx):
+            summaries = discussions.summaries_for(fx.gita, fx.e1)
+            for wish in (fx.w1, fx.w2, fx.w3, fx.w4, fx.w5, fx.w6):
+                self.assertNotIn(wish.pk, summaries.wishes)
+            self.assertNotIn(fx.gita.pk, summaries.members)
+            self.assertEqual(summaries.wishes[fx.wc.pk].count, 1)
+            self.assertEqual(summaries.members[fx.carl.pk].count, 1)
+
+    def test_str_of_discussion_rows_never_names_a_body_or_a_wish(self):
+        with with_claims(self.fx):
+            rows = [*Thread.objects.all(), *Comment.objects.all(), *ThreadVisit.objects.all()]
+            self.assertGreater(len(rows), 20)
+            bodies = list(Comment.objects.values_list("body", flat=True))
+            names = list(Wish.objects.values_list("name", flat=True))
+            for row in rows:
+                with self.subTest(row=f"{type(row).__name__} {row.pk}"):
+                    text = str(row)
+                    self.assertTrue(text)
+                    for body in bodies:
+                        self.assertNotIn(body, text)
+                    for name in names:
+                        self.assertNotIn(name, text)
+
+    def test_discussion_models_are_not_registered_in_the_admin(self):
+        for model in (Thread, Comment, ThreadVisit):
+            self.assertFalse(admin.site.is_registered(model))
+
 
 # --------------------------------------------------------------------------------------------
 # The Czech pass (plan 04-03, D-03)
@@ -1201,6 +1470,21 @@ class CzechChokepointTests(ChokepointTests):
 
 @override_settings(LANGUAGE_CODE="cs")
 class CzechStaffGifteeTests(StaffGifteeTests):
+    pass
+
+
+@override_settings(LANGUAGE_CODE="cs")
+class CzechDiscussionUniformNotFoundTests(DiscussionUniformNotFoundTests):
+    pass
+
+
+@override_settings(LANGUAGE_CODE="cs")
+class CzechGifteeAsGiverTests(GifteeAsGiverTests):
+    pass
+
+
+@override_settings(LANGUAGE_CODE="cs")
+class CzechDiscussionChokepointTests(DiscussionChokepointTests):
     pass
 
 
