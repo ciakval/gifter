@@ -67,6 +67,9 @@
         <p class="text-body-secondary mb-0">{% translate "No wishes shared here yet." %}</p>
       {% endfor %}
     </div>
+    <div class="card-footer d-flex flex-wrap align-items-center gap-2">
+      <a href="{% url 'member_discussion' event.pk card.user.pk %}" class="btn btn-outline-secondary btn-sm">{% translate "Discussion about this person" %}</a>
+    </div>
   </div>
 {% endfor %}
 {% endblock %}

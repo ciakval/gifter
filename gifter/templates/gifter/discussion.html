@@ -1,0 +1,30 @@
+{% extends "gifter/base.html" %}
+{% load i18n %}
+{% block head_title %}{% translate "Discussion" %} - Gifter{% endblock %}
+
+{% block content %}
+<p class="mb-2"><a href="{% url 'event_detail' event.pk %}">{% translate "Back to the event" %}</a></p>
+<h1 class="h3 mb-1">{{ heading }}</h1>
+<p class="text-body-secondary">{% blocktranslate with name=person_name %}{{ name }} will never see this discussion.{% endblocktranslate %}</p>
+{% if wish and wish.description %}<p>{{ wish.description|linebreaksbr }}</p>{% endif %}
+
+<div class="mb-4">
+  {% for comment in comments %}
+    <div class="mb-3" id="comment-{{ comment.pk }}">
+      <div class="fw-semibold">{{ comment.author_name }}</div>
+      <div class="small text-body-secondary">{{ comment.created_at|date:"DATETIME_FORMAT" }}</div>
+      <div>{{ comment.body|linebreaksbr }}</div>
+    </div>
+  {% empty %}
+    <p class="text-body-secondary">{% translate "No comments yet. Start the discussion." %}</p>
+  {% endfor %}
+</div>
+
+<form method="post" action="{{ thread_url }}" novalidate>
+  {% csrf_token %}
+  {% include "gifter/includes/form_field.html" with field=form.body %}
+  <div class="d-grid gap-2 d-sm-flex flex-wrap">
+    <button type="submit" class="btn btn-primary">{% translate "Post comment" %}</button>
+  </div>
+</form>
+{% endblock %}

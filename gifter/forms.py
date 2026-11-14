@@ -135,3 +135,17 @@ class WishForm(BootstrapFormMixin, forms.ModelForm):
 class ChipInForm(forms.Form):
     # max_length counts Unicode code points, so 200 x "ž" fits.
     note = forms.CharField(required=False, max_length=200, strip=True, label=_("Note (optional)"))
+
+
+class CommentForm(BootstrapFormMixin, forms.Form):
+    """A plain-text comment in a discussion (1 to 1000 characters, no formatting)."""
+
+    body = forms.CharField(
+        max_length=1000,
+        strip=True,
+        label=_("Your comment"),
+        widget=forms.Textarea(attrs={"rows": 3}),
+    )
+
+    def clean_body(self):
+        return self.cleaned_data["body"].replace("\r\n", "\n").replace("\r", "\n")

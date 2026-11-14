@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import claim_views, views
+from . import claim_views, discussion_views, views
 
 urlpatterns = [
     # No trailing slash on purpose: the deploy health check requests /healthz and a slash route
@@ -20,6 +20,16 @@ urlpatterns = [
         "events/<int:pk>/wishes/<int:wish_pk>/chip-in/",
         claim_views.wish_chip_in,
         name="wish_chip_in",
+    ),
+    path(
+        "events/<int:pk>/wishes/<int:wish_pk>/discussion/",
+        discussion_views.wish_discussion,
+        name="wish_discussion",
+    ),
+    path(
+        "events/<int:pk>/members/<int:user_pk>/discussion/",
+        discussion_views.member_discussion,
+        name="member_discussion",
     ),
     path("claims/<int:wish_pk>/purchased/", claim_views.claim_purchased, name="claim_purchased"),
     path("claims/<int:wish_pk>/release/", claim_views.claim_release, name="claim_release"),

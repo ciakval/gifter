@@ -192,3 +192,66 @@ class Contribution(models.Model):
     def __str__(self):
         # Never the wish name (see Claim.__str__).
         return gettext("Contribution %(pk)s") % {"pk": self.pk}
+
+
+class Thread(models.Model):
+    """A private discussion inside one event: about a wish (`wish` set) or about a person
+    (`wish` null). `giftee` is the wish owner or the person: the one user who must never learn
+    that the thread exists.
+
+    Every relation uses related_name "+", so Wish, Event and User have no accessor to threads
+    or comments and owner code cannot reach them by accident. All reads and writes go through
+    gifter/discussions.py.
+    """
+
+    event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name="+")
+    wish = models.ForeignKey(Wish, null=True, blank=True, on_delete=models.CASCADE, related_name="+")
+    giftee = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="+")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["event", "wish"],
+                condition=models.Q(wish__isnull=False),
+                name="unique_wish_thread_per_event",
+            ),
+            models.UniqueConstraint(
+                fields=["event", "giftee"],
+                condition=models.Q(wish__isnull=True),
+                name="unique_member_thread_per_event",
+            ),
+        ]
+
+    def __str__(self):
+        # Never a wish name: a listing or log line must not name a giftee's wish.
+        return f"Thread {self.pk}"
+
+
+class Comment(models.Model):
+    """One message in a thread. No updated_at and no edit path: a comment is written once and
+    can only be deleted by its author."""
+
+    thread = models.ForeignKey(Thread, on_delete=models.CASCADE, related_name="+")
+    author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="+")
+    body = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Comment {self.pk}"
+
+
+class ThreadVisit(models.Model):
+    """When a user last opened a thread (used for the "new since your last visit" marker)."""
+
+    thread = models.ForeignKey(Thread, on_delete=models.CASCADE, related_name="+")
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="+")
+    last_seen_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["thread", "user"], name="unique_thread_visit"),
+        ]
+
+    def __str__(self):
+        return f"Visit {self.pk}"
