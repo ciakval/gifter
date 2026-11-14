@@ -20,8 +20,9 @@ def without_nav(html):
 
 # Claim-state copy and claim-action URL fragments, case-sensitive, as rendered by
 # includes/member_wish.html and my_claims.html. The protected property is information, not
-# vocabulary (D-14 as amended on 2026-11-08): owner pages must not carry any of these, but the
-# generic top-bar "My claims" link may appear anywhere, so it is deliberately not listed.
+# vocabulary (D-14 as amended on 2026-11-08): owner pages must carry no claim-state copy and, since
+# Phase 5, no discussion copy (D-05); the generic top-bar "My claims" link may appear anywhere,
+# so it is deliberately not listed.
 # The English copy is listed here; the Czech wording comes from CLAIM_STATE_MSGIDS below, so a
 # claim-state label in either language on an owner page is caught.
 CLAIM_STATE_MARKERS = (
@@ -69,6 +70,31 @@ CLAIM_STATE_MSGIDS = (
 )
 
 
+# Discussion copy and URL fragments (Phase 5, D-05), case-sensitive, as rendered by
+# includes/member_wish.html, event_detail.html and discussion.html. Owner regions must carry none.
+DISCUSSION_MARKERS = (
+    "Discuss",
+    "comment",
+    "New since your last visit",
+    "/discussion/",
+    "/comments/",
+)
+
+# The msgids of the discussion copy; their Czech translations are checked as markers too.
+DISCUSSION_MSGIDS = (
+    "Discuss",
+    "Discussion",
+    "Discussion about this person",
+    "New since your last visit",
+    "Your comment",
+    "Post comment",
+    "Comment deleted.",
+)
+
+# Czech count labels and plural forms vary (komentář, komentáře, komentářů), so stems catch them.
+DISCUSSION_STEMS_CS = ("diskus", "Diskus", "koment", "Koment")
+
+
 def czech_claim_state_markers():
     """Czech translations of CLAIM_STATE_MSGIDS, skipping any that equal their msgid."""
     with translation.override("cs"):
@@ -76,7 +102,19 @@ def czech_claim_state_markers():
     return [t for t, msgid in zip(translated, CLAIM_STATE_MSGIDS) if t != msgid]
 
 
+def czech_discussion_markers():
+    """Czech translations of DISCUSSION_MSGIDS (skipping any equal to their msgid), plus stems."""
+    with translation.override("cs"):
+        translated = [translation.gettext(msgid) for msgid in DISCUSSION_MSGIDS]
+    own = [t for t, msgid in zip(translated, DISCUSSION_MSGIDS) if t != msgid]
+    return own + list(DISCUSSION_STEMS_CS)
+
+
 def claim_state_markers(html):
-    """The English claim-state markers found in html (tuple order), then the Czech ones."""
+    """Markers found in html: English claim-state, Czech claim-state, English discussion, then
+    Czech discussion. Despite the name it covers discussion copy too (D-05)."""
     found = [marker for marker in CLAIM_STATE_MARKERS if marker in html]
-    return found + [marker for marker in czech_claim_state_markers() if marker in html]
+    found += [marker for marker in czech_claim_state_markers() if marker in html]
+    found += [marker for marker in DISCUSSION_MARKERS if marker in html]
+    found += [marker for marker in czech_discussion_markers() if marker in html]
+    return found

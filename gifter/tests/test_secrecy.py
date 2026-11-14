@@ -25,9 +25,16 @@ no page-wide word check and no list of pages excused from one:
   even though a co-member's claimed wish is on the same event page;
 - every probe of a claim action gets the same 404 (D-15).
 
-The suite also proves its own sensitivity on every run (test_detectors_catch_injected_owner_leak):
-it injects a leak into the owner card through a test-only template override and checks that the
-very same detectors report it.
+Phase 5 (plan 05-03, DISC-04, D-05): discussion data joins every detector. add_claims also
+creates threads and comments about Gita and her wishes (add_discussions), with the sentinel
+inside comment bodies and a sentinel-named author, so the sentinel crawl, the byte-identical
+snapshots, the own-wish regions and the staff pass all cover discussions; DISCUSSION markers are
+looked for in the own-wish regions. Data a legitimate co-member thread needs on both sides of a
+comparison lives in Fixture.__init__.
+
+The suite also proves its own sensitivity on every run (test_detectors_catch_injected_owner_leak
+and test_detectors_catch_injected_comment_leak): it injects a leak into the owner card through a
+test-only template override and checks that the very same detectors report it.
 
 The Czech pass (plan 04-03, D-03): translations must not reintroduce a leak, so every class
 above that renders the giftee's pages is rerun in Czech by a subclass decorated with
@@ -70,7 +77,7 @@ from gifter.admin import (
     ReadOnlyEmailAddressAdmin,
     ReadOnlySocialAccountAdmin,
 )
-from gifter.models import Claim, Contribution, Wish
+from gifter.models import Claim, Comment, Contribution, Thread, ThreadVisit, Wish
 from gifter.tests.helpers import (
     CLAIM_STATE_MSGIDS,
     claim_state_markers,
@@ -170,10 +177,51 @@ class Fixture:
         # Present in both states: Gita is not WC's giftee, so her E1 page always carries a
         # legitimate claim-bearing card next to her own wishes.
         Claim.objects.create(wish=self.wc, claimer=self.kim)
+        # Also present in both states (Phase 5): discussions Gita may legitimately see, about
+        # her co-member Carl's wish and about Carl himself. Neither text holds the sentinel.
+        wish_thread = Thread.objects.create(event=self.e1, wish=self.wc, giftee=self.carl)
+        self.base_comment = Comment.objects.create(
+            thread=wish_thread, author=self.kim, body="Kim suggests a gift card"
+        )
+        member_thread = Thread.objects.create(event=self.e1, wish=None, giftee=self.carl)
+        Comment.objects.create(
+            thread=member_thread, author=self.kim, body="Kim asks what Carl likes"
+        )
+
+
+def add_discussions(fx):
+    """Discussions about Gita and her wishes, with the sentinel inside comment bodies and a
+    sentinel-named author, created directly through the ORM (bypassing the views, exactly as
+    add_claims does, so a later "leave event" feature is simulated)."""
+
+    def thread(event, giftee, wish=None):
+        return Thread.objects.create(event=event, wish=wish, giftee=giftee)
+
+    def say(a_thread, author, body):
+        return Comment.objects.create(thread=a_thread, author=author, body=body)
+
+    t1 = thread(fx.e1, fx.gita, fx.w1)
+    say(t1, fx.carl, "Carl zqxsentinel <b>idea</b> ž")
+    say(t1, fx.kim, "Kim thinks Lego")
+    say(t1, fx.sam, "Zqxsentinel note from nowhere")
+    say(thread(fx.e2, fx.gita, fx.w1), fx.kim, "Kim in the birthday event")
+    say(thread(fx.e1, fx.gita, fx.w2), fx.carl, "Carl on socks")
+    say(thread(fx.e2, fx.gita, fx.w3), fx.kim, "Kim on the pen")
+    say(thread(fx.e1, fx.gita, fx.w4), fx.carl, "Carl on the received lamp")
+    say(thread(fx.e1, fx.gita, fx.w5), fx.kim, "Kim on the withdrawn mug")
+    m1 = thread(fx.e1, fx.gita)
+    say(m1, fx.carl, "zqxsentinel what should we get Gita")
+    say(m1, fx.kim, "Kim about Gita")
+    say(thread(fx.e2, fx.gita), fx.kim, "Kim about Gita in the birthday event")
+    say(thread(fx.e9, fx.oscar, fx.wo), fx.sam, "Sam on the red hat")
+    ThreadVisit.objects.create(thread=t1, user=fx.carl)
+    ThreadVisit.objects.create(thread=m1, user=fx.kim)
 
 
 def add_claims(fx):
-    """Claims, chip-ins and notes on Gita's wishes, created directly through the ORM."""
+    """Claims, chip-ins and notes on Gita's wishes, and discussions about her and her wishes
+    (add_discussions), created directly through the ORM. Every detector below (sentinel crawl,
+    byte-identical snapshots, own-wish regions, staff pass) therefore covers discussion data."""
     c1 = Claim.objects.create(wish=fx.w1, claimer=fx.carl, status=Claim.Status.PURCHASED)
     Contribution.objects.create(claim=c1, user=fx.kim, note="Kim zqxsentinel <b>poznámka</b> ž")
     Contribution.objects.create(claim=c1, user=fx.sam, note="Zqxsentinel note")
@@ -183,6 +231,7 @@ def add_claims(fx):
     Contribution.objects.create(claim=c5, user=fx.sam, note="")
     Claim.objects.create(wish=fx.w6, claimer=fx.sam)
     Claim.objects.create(wish=fx.wo, claimer=fx.sam)
+    add_discussions(fx)
 
 
 class with_claims:
@@ -589,6 +638,48 @@ class ByteIdenticalTests(SecrecyMixin, TestCase):
         self.assertNotEqual(mask_csrf(a), mask_csrf(a.replace("x", "y")))
 
 
+class DiscussionDataTests(SecrecyMixin, TestCase):
+    def test_without_discussions_the_state_has_two_threads_and_none_about_gita(self):
+        self.assertEqual(Thread.objects.count(), 2)
+        self.assertEqual(Comment.objects.count(), 2)
+        self.assertEqual(ThreadVisit.objects.count(), 0)
+        self.assertFalse(Thread.objects.filter(giftee=self.fx.gita).exists())
+        self.assertEqual(Comment.objects.get(pk=self.fx.base_comment.pk).body, "Kim suggests a gift card")
+        for body in Comment.objects.values_list("body", flat=True):
+            self.assertNotIn(SENTINEL, body.lower())
+        self.assertEqual(Claim.objects.filter(wish__owner=self.fx.gita).count(), 0)
+
+    def test_with_claims_the_discussion_data_is_there(self):
+        fx = self.fx
+        with with_claims(fx):
+            sentinel_comments = [
+                body
+                for body in Comment.objects.values_list("body", flat=True)
+                if SENTINEL in body.lower()
+            ]
+            self.assertGreaterEqual(len(sentinel_comments), 3)
+            about_gita = Thread.objects.filter(giftee=fx.gita)
+            wish_threads = {(t.event_id, t.wish_id) for t in about_gita if t.wish_id}
+            self.assertEqual(
+                wish_threads,
+                {
+                    (fx.e1.pk, fx.w1.pk),
+                    (fx.e2.pk, fx.w1.pk),
+                    (fx.e1.pk, fx.w2.pk),
+                    (fx.e2.pk, fx.w3.pk),
+                    (fx.e1.pk, fx.w4.pk),
+                    (fx.e1.pk, fx.w5.pk),
+                },
+            )
+            member_threads = {t.event_id for t in about_gita if not t.wish_id}
+            self.assertEqual(member_threads, {fx.e1.pk, fx.e2.pk})
+            self.assertTrue(Thread.objects.filter(wish=fx.wo, giftee=fx.oscar).exists())
+            self.assertGreaterEqual(ThreadVisit.objects.count(), 2)
+            gita_events = set(fx.gita.events.values_list("pk", flat=True))
+            sam_events = set(fx.sam.events.values_list("pk", flat=True))
+            self.assertFalse(gita_events & sam_events)
+
+
 class UniformNotFoundTests(SecrecyMixin, TestCase):
     def paths(self):
         fx = self.fx
@@ -757,7 +848,30 @@ MUTANT_FRAGMENT = (
 )
 
 
-def mutant_templates():
+def leaked_comments(request):
+    """Test-only context processor: every comment in a wish thread about the signed-in user."""
+    if request.user.is_authenticated:
+        return {
+            "leaked_comments": [
+                {"wish_id": thread_wish_id, "body": body}
+                for thread_wish_id, body in Comment.objects.filter(
+                    thread__giftee=request.user, thread__wish__isnull=False
+                ).values_list("thread__wish_id", "body")
+            ]
+        }
+    return {"leaked_comments": []}
+
+
+LEAKED_COMMENT_FRAGMENT = (
+    "{% for leaked in leaked_comments %}{% if leaked.wish_id == wish.pk %}"
+    '<span class="badge text-bg-warning">Discussion: {{ leaked.body }}</span>'
+    "{% endif %}{% endfor %}"
+)
+
+
+def mutant_templates(
+    fragment=MUTANT_FRAGMENT, processor="gifter.tests.test_secrecy.leaked_claims"
+):
     """The project's TEMPLATES, with owner_wish.html replaced by a leaking copy."""
     real = (TEMPLATES_DIR / "includes" / "owner_wish.html").read_text(encoding="utf-8")
     templates = copy.deepcopy(settings.TEMPLATES)
@@ -766,12 +880,12 @@ def mutant_templates():
     options = entry.setdefault("OPTIONS", {})
     options["context_processors"] = [
         *options.get("context_processors", []),
-        "gifter.tests.test_secrecy.leaked_claims",
+        processor,
     ]
     options["loaders"] = [
         (
             "django.template.loaders.locmem.Loader",
-            {"gifter/includes/owner_wish.html": real + MUTANT_FRAGMENT},
+            {"gifter/includes/owner_wish.html": real + fragment},
         ),
         "django.template.loaders.app_directories.Loader",
     ]
@@ -801,6 +915,25 @@ class SelfSensitivityTests(SecrecyMixin, TestCase):
             self.assertCountEqual([label for label, _markers in regions], self.PAGES)
             for _label, markers in regions:
                 self.assertIn("Taken", markers)
+
+        self.assertEqual(snapshot_findings(self.fx, selected), [])
+        self.assertEqual(sentinel_findings(self.fx, selected), [])
+        self.assertEqual(region_findings(self.fx, selected), [])
+
+    def test_detectors_catch_injected_comment_leak(self):
+        selected = self.pages()
+        self.assertEqual(snapshot_findings(self.fx, selected), [])
+        self.assertEqual(sentinel_findings(self.fx, selected), [])
+        self.assertEqual(region_findings(self.fx, selected), [])
+
+        mutant = mutant_templates(LEAKED_COMMENT_FRAGMENT, "gifter.tests.test_secrecy.leaked_comments")
+        with override_settings(TEMPLATES=mutant):
+            self.assertCountEqual(snapshot_findings(self.fx, selected), self.PAGES)
+            self.assertCountEqual(sentinel_findings(self.fx, selected), self.PAGES)
+            regions = region_findings(self.fx, selected)
+            self.assertCountEqual([label for label, _markers in regions], self.PAGES)
+            for _label, markers in regions:
+                self.assertIn("Discuss", markers)
 
         self.assertEqual(snapshot_findings(self.fx, selected), [])
         self.assertEqual(sentinel_findings(self.fx, selected), [])
