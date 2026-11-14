@@ -108,6 +108,10 @@ Recent decisions affecting current work:
 - [Phase 03]: 03-03 supersedes 01-07 WR-04 admin deletion for SECR-01; recorded in 01-REVIEW-DISPOSITION.md
 - [Phase 03]: Sensitivity test patches delete on GifterUserAdmin and both identity admins: identity-row users get a plain cannot-delete page, a second layer
 
+### Roadmap Evolution
+
+- Phase 5 added (2026-11-14): Secret Discussions: per-event wish comment threads and per-giftee discussions, hidden from the giftee, "new since last visit" markers, delete-own, no edit
+
 ### Pending Todos
 
 - [deferred human verification, from 01-08; user declined to run them on 2026-11-08, NOT passed] (1) Sign in with a Google account never added as a test user, no "Access blocked" (SC-2, AUTH-01; the only proof the publish worked); (2) that account bounced from /gifter-admin/; (3) desktop session survives deploys and a full browser restart, sign out and sign in again (AUTH-02, SC-1); (4) phone layout of landing, /events/, footer Privacy link; (5) real Messenger/Instagram in-app hint with exact menu wording (SC-4, OPS-04). Run at end-of-phase UAT (/gsd-verify-work 1).
@@ -118,7 +122,7 @@ Recent decisions affecting current work:
 
 ### Blockers/Concerns
 
-- Deadlines: features complete ~15 Nov, family dry-run 15–22 Nov, freeze 1 Dec 2026
+- Re-scoped 2026-11-14: the family are live, primary users; the old dry-run and freeze dates are void. Ship new work as soon as it is ready without breaking what they use.
 - Phase 1: Consent screen reported published ("In production") by the user on 2026-11-08; unverified until a never-added Google account signs in (see deferred human verification todo). /privacy/ is live.
 - Phase 1: The Bombur steps outside the repo (DNS CNAME, server `.env`, deploy key, GitHub secrets, Caddy block) need the user
 - Phase 3: Run discuss-phase before planning (un-sharing a claimed wish, release hand-over)

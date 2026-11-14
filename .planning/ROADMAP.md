@@ -4,7 +4,7 @@
 
 Gifter goes from a half-working Django skeleton to a family-ready Christmas 2026 app in four vertical slices. Each slice is deployed to https://gifter.remesh.cz. Phase 1 puts a modernized Django 6.1 app with Google sign-in live on Bombur, so the riskiest environment work (OAuth, hosting, in-app browsers) is proven first. Phase 2 lets the family create events, join via invite links, keep personal wishlists and browse each other's wishes. Phase 3 delivers the core promise: secret claims, chip-in and the received flow, with automated tests proving the giftee can never see who claimed what. Phase 4 gets it ready for relatives: full Czech, a pass on real phones, nightly backups and a family dry-run before the 1 Dec freeze.
 
-**Schedule anchors (user deadlines, not estimates):** today 2026-10-16 · features complete ~15 Nov · family dry-run 15–22 Nov · feature freeze 1 Dec · family use over Christmas 2026.
+**Schedule (re-scoped 2026-11-14):** the family are now live, primary users, not a dry-run group. The earlier date anchors (features complete ~15 Nov, dry-run 15–22 Nov, freeze 1 Dec) no longer apply. New work ships to production as soon as it is ready, without breaking what the family already uses. Target: still usable over Christmas 2026.
 
 **If behind schedule, cut in this order:** received flow → chip-in UI → priority → Czech polish beyond the strings themselves. Never cut the secrecy tests or the backups.
 
@@ -28,6 +28,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 2: Events, Wishlists & Browsing** - Create events, join by invite link, keep a wishlist, share wishes, browse others' wishes
 - [ ] **Phase 3: Secret Claims & Gift Lifecycle** - Claim, chip in, mark purchased and received, all invisible to the giftee and proven by tests
 - [ ] **Phase 4: Family Launch** - Full Czech, a real-phone pass, nightly backups and a relatives' dry-run before the 1 Dec freeze
+- [ ] **Phase 5: Secret Discussions** - Secret per-event comment threads on wishes and per-giftee discussions, with "new since last visit" markers
 
 ## Phase Details
 
@@ -145,10 +146,30 @@ Plans:
 **UI hint**: yes
 **Notes:** Check the Czech Plural-Forms header against Django's own `cs` catalogue, and have a Czech-speaking relative review the copy. Prepare a short plain-Czech "how to join" message for relatives. Finish the Czech catalogue and the phone pass before the dry-run window opens (~15 Nov). Backups can be set up any time after the first deploy, but the restore drill must be done before 1 Dec.
 
+### Phase 5: Secret Discussions
+
+**Goal:** Givers in an event can talk about a giftee's wishes, and about the giftee in general, without the giftee ever knowing the conversations exist.
+**Mode:** mvp
+**Depends on:** Phase 4
+**Requirements:** DISC-01, DISC-02, DISC-03, DISC-04
+**Success Criteria** (what must be TRUE):
+  1. On an event page, every member except the wish's owner can read and post comments on that wish. The thread belongs to the wish *within that event*: the same wish shared into another event has a separate thread.
+  2. On an event page, every member except the giftee can read and post in a discussion about that giftee (for "she has no wishes yet", "let's all chip in for something big").
+  3. A wish card or giftee section shows a "new since your last visit" marker when there are comments the viewer has not seen. There are no notifications or emails.
+  4. An author can delete their own comment. Nobody can edit a comment.
+  5. The giftee cannot find out that a thread or comment exists, through any page, count, marker, URL, POST response or admin view. The secrecy suite proves it, including the giftee who is also a giver in the same event, and a staff giftee.
+
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 5 to break down)
+**UI hint**: yes
+**Notes:** Decisions from brainstorming on 2026-11-14: threads are per event; user-level discussion is included; delete-own yes, edit no; last-visit marker yes, notifications no. Comment text joins the secrecy suite's sentinels. Update the privacy policy (EN + CS) and `delete_user` for comments. All strings in Czech too.
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4
+Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -156,3 +177,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | 2. Events, Wishlists & Browsing | 2/2 | In Progress | - |
 | 3. Secret Claims & Gift Lifecycle | 3/3 | In Progress | - |
 | 4. Family Launch | 5/5 | Deployed, UAT pending | - |
+| 5. Secret Discussions | 0/? | Not planned | - |

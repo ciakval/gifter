@@ -64,6 +64,13 @@ Requirements for the Christmas 2026 release. Each maps to roadmap phases.
 - [ ] **I18N-01**: All UI text is available in English and Czech (correct Czech plural forms), and the user can switch language
 - [ ] **I18N-02**: All pages are comfortably usable on a phone screen (incl. in-app browsers that do work)
 
+### Secret Discussions
+
+- [ ] **DISC-01**: Every event member except the wish's owner can read and post comments on a wish, in a thread that belongs to that wish within that event
+- [ ] **DISC-02**: Every event member except the giftee can read and post in a discussion about that giftee within the event
+- [ ] **DISC-03**: A viewer sees a "new since your last visit" marker on threads with comments they have not seen (no notifications); authors can delete their own comments, nobody can edit
+- [ ] **DISC-04**: Automated tests prove the giftee cannot learn that any thread or comment about them exists (pages, counts, markers, URLs, POST responses, admin; incl. giftee-as-giver and staff giftee)
+
 ## v2 Requirements
 
 Deferred to a future release. Tracked but not in current roadmap.
@@ -80,7 +87,7 @@ Deferred to a future release. Tracked but not in current roadmap.
 
 ### Collaboration
 
-- **COLL-01**: Hidden discussion on a wish among non-giftee members
+- ~~**COLL-01**: Hidden discussion on a wish among non-giftee members~~ (promoted to v1 as DISC-01..04 on 2026-11-14)
 - **COLL-02**: Members can add secret suggestions to someone's list
 
 ### Wishes
@@ -147,12 +154,16 @@ Which phases cover which requirements. Updated during roadmap creation.
 | LIFE-03 | Phase 3 | Complete |
 | I18N-01 | Phase 4 | Pending |
 | I18N-02 | Phase 4 | Pending |
+| DISC-01 | Phase 5 | Pending |
+| DISC-02 | Phase 5 | Pending |
+| DISC-03 | Phase 5 | Pending |
+| DISC-04 | Phase 5 | Pending |
 
 **Coverage:**
-- v1 requirements: 33 total
-- Mapped to phases: 33
+- v1 requirements: 37 total
+- Mapped to phases: 37
 - Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-10-16*
-*Last updated: 2026-10-16 after roadmap creation (traceability filled)*
+*Last updated: 2026-11-14 (DISC-01..04 added for Phase 5)*
