@@ -9,8 +9,14 @@ import importlib
 
 from django.contrib.auth import get_user_model
 from django.db import IntegrityError, migrations, transaction
-from django.test import TestCase
+from datetime import timedelta
 
+from django.test import TestCase
+from django.test.utils import CaptureQueriesContext
+from django.db import connection
+from django.utils import timezone
+
+from gifter.discussions import NO_DISCUSSION, ThreadSummary, summaries_for
 from gifter.models import Comment, Event, Thread, ThreadVisit, Wish
 from gifter.tests.test_events import join, make_event, make_user
 from gifter.tests.test_wishes import make_wish
@@ -374,3 +380,220 @@ class CzechTests(DiscussionScenario, TestCase):
         self.assertContains(page, czech("Discuss"))
         member = self.client.get(self.member_url(self.carol), headers={"accept-language": "cs"})
         self.assertContains(member, czech("Discussion: %(name)s") % {"name": "Carol"})
+
+
+MARKER = "New since your last visit"
+
+
+def age(comment, hours=2):
+    """Move a comment into the past so that the order of events is explicit in a test."""
+    Comment.objects.filter(pk=comment.pk).update(created_at=timezone.now() - timedelta(hours=hours))
+    comment.refresh_from_db()
+
+
+class MarkerTests(DiscussionScenario, TestCase):
+    def setUp(self):
+        self.build()
+
+    def page(self, user, event=None):
+        self.client.force_login(user)
+        return self.client.get(self.event_url(event))
+
+    def post(self, user, body, url=None):
+        self.client.force_login(user)
+        self.client.post(url or self.thread_url(), {"body": body})
+        return Comment.objects.order_by("pk").last()
+
+    def test_no_threads_means_plain_label_and_no_marker(self):
+        page = self.page(self.carol)
+        self.assertContains(page, "Discuss")
+        self.assertNotContains(page, MARKER)
+        self.assertNotContains(page, "comment)")
+
+    def test_a_comment_by_bob_marks_carols_page_but_not_his_own_or_annas(self):
+        self.post(self.bob, "Hello")
+        carol = self.page(self.carol)
+        self.assertContains(carol, "Discussion (1 comment)")
+        self.assertContains(carol, MARKER, count=1)
+        bob = self.page(self.bob)
+        self.assertContains(bob, "Discussion (1 comment)")
+        self.assertNotContains(bob, MARKER)
+        anna = self.page(self.anna)
+        self.assertNotContains(anna, MARKER)
+        self.assertNotContains(anna, "comment)")
+
+    def test_opening_clears_the_marker_and_new_comments_bring_it_back(self):
+        first = self.post(self.bob, "Hello")
+        age(first)
+        self.client.force_login(self.carol)
+        thread = self.client.get(self.thread_url())
+        self.assertContains(thread, "badge text-bg-info")
+        self.assertContains(thread, ">New</span>", count=1)
+        self.assertNotContains(self.page(self.carol), MARKER)
+        again = self.client.get(self.thread_url())
+        self.assertNotContains(again, ">New</span>")
+        self.post(self.bob, "Again")
+        carol = self.page(self.carol)
+        self.assertContains(carol, MARKER, count=1)
+        self.assertContains(carol, "Discussion (2 comments)")
+
+    def test_only_unseen_comments_carry_the_new_badge(self):
+        first = self.post(self.bob, "Hello")
+        age(first, 3)
+        self.client.force_login(self.carol)
+        self.client.get(self.thread_url())
+        ThreadVisit.objects.update(last_seen_at=timezone.now() - timedelta(hours=1))
+        self.post(self.bob, "Second")
+        self.client.force_login(self.carol)
+        page = self.client.get(self.thread_url())
+        self.assertContains(page, ">New</span>", count=1)
+
+    def test_own_comments_never_mark_anything_new_for_the_author(self):
+        self.post(self.bob, "Mine")
+        self.client.force_login(self.bob)
+        page = self.client.get(self.thread_url())
+        self.assertNotContains(page, ">New</span>")
+
+    def test_member_thread_marker_and_giftee_blindness(self):
+        self.post(self.carol, "About Bob", url=self.member_url(self.bob))
+        anna = self.page(self.anna)
+        self.assertContains(anna, MARKER, count=1)
+        self.assertContains(anna, "Discussion about this person (1 comment)")
+        bob = self.page(self.bob)
+        self.assertNotContains(bob, MARKER)
+        self.assertNotContains(bob, "comment)")
+        self.client.force_login(self.bob)
+        self.assertEqual(self.client.get(self.member_url(self.bob)).status_code, 404)
+        self.client.force_login(self.anna)
+        self.client.get(self.member_url(self.bob))
+        self.assertNotContains(self.page(self.anna), MARKER)
+
+
+class ThreadVisitRuleTests(DiscussionScenario, TestCase):
+    def setUp(self):
+        self.build()
+        thread = Thread.objects.create(event=self.e1, wish=self.wish, giftee=self.anna)
+        Comment.objects.create(thread=thread, author=self.bob, body="Hello")
+        self.thread = thread
+
+    def test_first_open_creates_one_row_and_second_updates_it(self):
+        self.client.force_login(self.carol)
+        self.client.get(self.thread_url())
+        visit = ThreadVisit.objects.get(thread=self.thread, user=self.carol)
+        ThreadVisit.objects.filter(pk=visit.pk).update(last_seen_at=timezone.now() - timedelta(days=1))
+        before = ThreadVisit.objects.get(pk=visit.pk).last_seen_at
+        self.client.get(self.thread_url())
+        self.assertEqual(ThreadVisit.objects.filter(thread=self.thread, user=self.carol).count(), 1)
+        self.assertGreater(ThreadVisit.objects.get(pk=visit.pk).last_seen_at, before)
+
+    def test_a_gate_failure_creates_no_visit(self):
+        self.client.force_login(self.anna)
+        self.assertEqual(self.client.get(self.thread_url()).status_code, 404)
+        self.assertEqual(self.client.get(self.member_url(self.anna)).status_code, 404)
+        stranger = make_user("zed", first_name="Zed")
+        self.client.force_login(stranger)
+        self.assertEqual(self.client.get(self.thread_url()).status_code, 404)
+        self.assertEqual(ThreadVisit.objects.count(), 0)
+
+    def test_an_empty_thread_creates_no_thread_and_no_visit(self):
+        Thread.objects.all().delete()
+        self.client.force_login(self.carol)
+        self.client.get(self.thread_url())
+        self.client.get(self.member_url(self.bob))
+        self.assertEqual(Thread.objects.count(), 0)
+        self.assertEqual(ThreadVisit.objects.count(), 0)
+
+    def test_posting_alone_creates_no_visit(self):
+        self.client.force_login(self.bob)
+        self.client.post(self.thread_url(), {"body": "More"})
+        self.assertEqual(ThreadVisit.objects.count(), 0)
+
+    def test_an_invalid_post_does_not_change_another_viewers_marker(self):
+        self.client.force_login(self.bob)
+        self.client.post(self.thread_url(), {"body": "   "})
+        self.client.force_login(self.carol)
+        page = self.client.get(self.event_url())
+        self.assertContains(page, MARKER, count=1)
+        self.assertFalse(ThreadVisit.objects.filter(user=self.carol).exists())
+
+
+class SummariesForTests(DiscussionScenario, TestCase):
+    def setUp(self):
+        self.build()
+
+    def make_thread(self, wish=None, event=None, giftee=None):
+        event = event or self.e1
+        if wish is not None:
+            return Thread.objects.create(event=event, wish=wish, giftee=wish.owner)
+        return Thread.objects.create(event=event, giftee=giftee)
+
+    def test_a_thread_about_the_viewer_is_absent(self):
+        thread = self.make_thread(wish=self.wish)
+        Comment.objects.create(thread=thread, author=self.bob, body="x")
+        about_anna = self.make_thread(giftee=self.anna)
+        Comment.objects.create(thread=about_anna, author=self.bob, body="x")
+        mine = summaries_for(self.anna, self.e1)
+        self.assertEqual(mine.wishes, {})
+        self.assertEqual(mine.members, {})
+        theirs = summaries_for(self.carol, self.e1)
+        self.assertIn(self.wish.pk, theirs.wishes)
+        self.assertIn(self.anna.pk, theirs.members)
+
+    def test_another_event_is_absent(self):
+        thread = self.make_thread(wish=self.wish, event=self.e2)
+        Comment.objects.create(thread=thread, author=self.dave, body="x")
+        result = summaries_for(self.bob, self.e1)
+        self.assertEqual((result.wishes, result.members), ({}, {}))
+
+    def test_counts_and_new_for_author_reader_and_visitor(self):
+        thread = self.make_thread(wish=self.wish)
+        old = Comment.objects.create(thread=thread, author=self.bob, body="a")
+        Comment.objects.create(thread=thread, author=self.carol, body="b")
+        Comment.objects.create(thread=thread, author=self.bob, body="c")
+        age(old, 5)
+        self.assertEqual(
+            summaries_for(self.bob, self.e1).wishes[self.wish.pk], ThreadSummary(count=3, new=1)
+        )
+        self.assertEqual(
+            summaries_for(self.carol, self.e1).wishes[self.wish.pk], ThreadSummary(count=3, new=2)
+        )
+        ThreadVisit.objects.create(
+            thread=thread, user=self.carol, last_seen_at=timezone.now() - timedelta(hours=1)
+        )
+        self.assertEqual(
+            summaries_for(self.carol, self.e1).wishes[self.wish.pk], ThreadSummary(count=3, new=1)
+        )
+        ThreadVisit.objects.filter(user=self.carol).update(
+            last_seen_at=timezone.now() + timedelta(hours=1)
+        )
+        self.assertEqual(
+            summaries_for(self.carol, self.e1).wishes[self.wish.pk], ThreadSummary(count=3, new=0)
+        )
+
+    def test_member_threads_are_keyed_by_person(self):
+        thread = self.make_thread(giftee=self.bob)
+        Comment.objects.create(thread=thread, author=self.carol, body="x")
+        result = summaries_for(self.carol, self.e1)
+        self.assertEqual(result.members[self.bob.pk], ThreadSummary(count=1, new=0))
+        self.assertEqual(result.members.get(self.carol.pk, NO_DISCUSSION), NO_DISCUSSION)
+
+    def queries(self, viewer):
+        with CaptureQueriesContext(connection) as ctx:
+            summaries_for(viewer, self.e1)
+        return ctx
+
+    def test_query_budget_and_no_body_column(self):
+        with CaptureQueriesContext(connection) as none:
+            summaries_for(self.carol, self.e1)
+        self.assertEqual(len(none), 1)
+        thread = self.make_thread(wish=self.wish)
+        Comment.objects.create(thread=thread, author=self.bob, body="x")
+        self.assertLessEqual(len(self.queries(self.carol)), 3)
+        for i in range(5):
+            wish = make_wish(self.bob, name=f"W{i}", events=[self.e1])
+            t = self.make_thread(wish=wish)
+            Comment.objects.create(thread=t, author=self.anna, body="y")
+        ctx = self.queries(self.carol)
+        self.assertLessEqual(len(ctx), 3)
+        for q in ctx.captured_queries:
+            self.assertNotIn('"body"', q["sql"])

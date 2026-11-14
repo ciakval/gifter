@@ -71,5 +71,8 @@ owner pages: it renders claim state, which the giftee must never see.
       <button type="submit" class="btn btn-primary">{% translate "I'll get this" %}</button>
     </form>
   {% endif %}
-  <div class="mt-2"><a href="{% url 'wish_discussion' event.pk wish.pk %}" class="btn btn-outline-secondary btn-sm">{% translate "Discuss" %}</a></div>
+  <div class="mt-2 d-flex flex-wrap align-items-center gap-2">
+    <a href="{% url 'wish_discussion' event.pk wish.pk %}" class="btn btn-outline-secondary btn-sm">{% if discussion.count %}{% blocktranslate count counter=discussion.count %}Discussion ({{ counter }} comment){% plural %}Discussion ({{ counter }} comments){% endblocktranslate %}{% else %}{% translate "Discuss" %}{% endif %}</a>
+    {% if discussion.new %}<span class="badge text-bg-info">{% translate "New since your last visit" %}</span>{% endif %}
+  </div>
 </div>

@@ -11,7 +11,7 @@
 <div class="mb-4">
   {% for comment in comments %}
     <div class="mb-3" id="comment-{{ comment.pk }}">
-      <div class="fw-semibold">{{ comment.author_name }}</div>
+      <div class="fw-semibold">{{ comment.author_name }}{% if comment.is_new %} <span class="badge text-bg-info">{% translate "New" %}</span>{% endif %}</div>
       <div class="small text-body-secondary">{{ comment.created_at|date:"DATETIME_FORMAT" }}</div>
       <div>{{ comment.body|linebreaksbr }}</div>
     </div>

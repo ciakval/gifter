@@ -19,6 +19,7 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_POST, require_safe
 
 from .claims import claim_views_for
+from .discussions import NO_DISCUSSION, summaries_for
 from .forms import EventForm, WishForm
 from .inapp import is_in_app_browser
 from .models import Event, Membership, Wish
@@ -163,13 +164,22 @@ def event_detail(request, pk):
     )
     # The only claim read on this page: other members' wishes, viewer excluded.
     claim_map = claim_views_for(request.user, shared)
+    summaries = summaries_for(request.user, event)
     by_owner = {}
     for wish in shared:
         by_owner.setdefault(wish.owner_id, []).append(
-            {"wish": wish, "claim": claim_map.get(wish.pk)}
+            {
+                "wish": wish,
+                "claim": claim_map.get(wish.pk),
+                "discussion": summaries.wishes.get(wish.pk, NO_DISCUSSION),
+            }
         )
     member_cards = [
-        {"user": membership.user, "items": by_owner.get(membership.user_id, [])}
+        {
+            "user": membership.user,
+            "items": by_owner.get(membership.user_id, []),
+            "discussion": summaries.members.get(membership.user_id, NO_DISCUSSION),
+        }
         for membership in memberships
         if membership.user_id != request.user.pk
     ]

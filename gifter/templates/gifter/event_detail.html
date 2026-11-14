@@ -62,13 +62,14 @@
     <div class="card-header fw-semibold">{{ card.user.display_name }}</div>
     <div class="card-body">
       {% for item in card.items %}
-        {% include "gifter/includes/member_wish.html" with wish=item.wish claim=item.claim %}
+        {% include "gifter/includes/member_wish.html" with wish=item.wish claim=item.claim discussion=item.discussion %}
       {% empty %}
         <p class="text-body-secondary mb-0">{% translate "No wishes shared here yet." %}</p>
       {% endfor %}
     </div>
     <div class="card-footer d-flex flex-wrap align-items-center gap-2">
-      <a href="{% url 'member_discussion' event.pk card.user.pk %}" class="btn btn-outline-secondary btn-sm">{% translate "Discussion about this person" %}</a>
+      <a href="{% url 'member_discussion' event.pk card.user.pk %}" class="btn btn-outline-secondary btn-sm">{% if card.discussion.count %}{% blocktranslate count counter=card.discussion.count %}Discussion about this person ({{ counter }} comment){% plural %}Discussion about this person ({{ counter }} comments){% endblocktranslate %}{% else %}{% translate "Discussion about this person" %}{% endif %}</a>
+      {% if card.discussion.new %}<span class="badge text-bg-info">{% translate "New since your last visit" %}</span>{% endif %}
     </div>
   </div>
 {% endfor %}
