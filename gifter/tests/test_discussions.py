@@ -128,3 +128,137 @@ class DiscussionTracerTests(DiscussionScenario, TestCase):
         for obj in (thread, comment, visit):
             self.assertNotIn("zork", str(obj))
             self.assertNotIn("Lego", str(obj))
+
+
+class MemberThreadTests(DiscussionScenario, TestCase):
+    def setUp(self):
+        self.build()
+
+    def test_bob_posts_about_carol_and_everyone_but_carol_can_read_and_post(self):
+        self.client.force_login(self.bob)
+        response = self.client.post(self.member_url(self.carol), {"body": "Surprise zork"})
+        self.assertEqual(response.status_code, 302)
+        thread = Thread.objects.get()
+        self.assertIsNone(thread.wish)
+        self.assertEqual(thread.giftee, self.carol)
+        self.assertEqual(thread.event, self.e1)
+        # Anna is not the person, so she can read and post.
+        self.client.force_login(self.anna)
+        page = self.client.get(self.member_url(self.carol))
+        self.assertContains(page, "Surprise zork")
+        self.assertContains(page, "Bob")
+        self.assertContains(page, "Carol will never see this discussion.")
+        self.client.post(self.member_url(self.carol), {"body": "Agreed"})
+        self.assertEqual(Comment.objects.count(), 2)
+
+    def test_the_person_gets_the_missing_user_404_and_nothing_is_written(self):
+        self.client.force_login(self.carol)
+        baseline = self.client.get(self.member_url(self.carol, user_pk=999999))
+        self.assertEqual(baseline.status_code, 404)
+        for method in (self.client.get, self.client.post):
+            response = method(self.member_url(self.carol), {"body": "zork"} if method == self.client.post else {})
+            self.assertEqual(response.status_code, 404)
+            self.assertEqual(response.content, baseline.content)
+        self.assertEqual(Thread.objects.count(), 0)
+        self.assertEqual(Comment.objects.count(), 0)
+
+    def test_a_person_with_no_wishes_still_has_a_thread(self):
+        self.assertEqual(Wish.objects.filter(owner=self.carol).count(), 0)
+        self.client.force_login(self.bob)
+        page = self.client.get(self.member_url(self.carol))
+        self.assertEqual(page.status_code, 200)
+        self.assertContains(page, "Discussion: Carol")
+
+
+class GateMatrixTests(DiscussionScenario, TestCase):
+    def setUp(self):
+        self.build()
+        self.client.force_login(self.bob)
+        self.baseline = self.client.get(self.thread_url(wish_pk=999999)).content
+
+    def assert_uniform(self, user, url):
+        self.client.force_login(user)
+        for response in (self.client.get(url), self.client.post(url, {"body": "zork"})):
+            self.assertEqual(response.status_code, 404, url)
+            self.assertEqual(response.content, self.baseline, url)
+        self.assertEqual(Thread.objects.count(), 0, url)
+        self.assertEqual(Comment.objects.count(), 0, url)
+
+    def test_wish_route_gates(self):
+        only_e2 = make_wish(self.anna, name="Only friends", events=[self.e2])
+        withdrawn = make_wish(
+            self.anna, name="Gone", events=[self.e1], status=Wish.Status.WITHDRAWN
+        )
+        received = make_wish(
+            self.anna, name="Got it", events=[self.e1], status=Wish.Status.RECEIVED
+        )
+        orphan_owner = make_user("erin", first_name="Erin")
+        orphan = make_wish(orphan_owner, name="Orphan", events=[self.e1])
+        join(self.e1, orphan_owner)
+        orphan_owner.memberships.filter(event=self.e1).delete()
+        self.assert_uniform(self.dave, self.thread_url())
+        self.assert_uniform(self.bob, f"/events/999999/wishes/{self.wish.pk}/discussion/")
+        self.assert_uniform(self.bob, self.thread_url(wish_pk=999999))
+        self.assert_uniform(self.bob, self.thread_url(wish=only_e2))
+        self.assert_uniform(self.bob, self.thread_url(wish=withdrawn))
+        self.assert_uniform(self.bob, self.thread_url(wish=received))
+        self.assert_uniform(self.bob, self.thread_url(wish=orphan))
+        self.assert_uniform(self.anna, self.thread_url())
+
+    def test_member_route_gates(self):
+        outsider = make_user("erin", first_name="Erin")
+        self.assert_uniform(self.dave, self.member_url(self.carol))
+        self.assert_uniform(self.bob, f"/events/999999/members/{self.carol.pk}/discussion/")
+        self.assert_uniform(self.bob, self.member_url(self.carol, user_pk=999999))
+        self.assert_uniform(self.bob, self.member_url(outsider))
+        self.assert_uniform(self.bob, self.member_url(self.dave))
+        self.assert_uniform(self.bob, self.member_url(self.bob))
+        self.assert_uniform(self.carol, self.member_url(self.carol))
+
+
+class OneThreadPerEventTests(DiscussionScenario, TestCase):
+    def setUp(self):
+        self.build()
+
+    def test_the_same_wish_has_separate_threads_in_two_events(self):
+        self.client.force_login(self.bob)
+        self.client.post(self.thread_url(), {"body": "From E1"})
+        self.client.force_login(self.carol)
+        self.assertEqual(self.client.get(self.thread_url(self.e2)).status_code, 404)
+        self.client.force_login(self.dave)
+        page = self.client.get(self.thread_url(self.e2))
+        self.assertEqual(page.status_code, 200)
+        self.assertNotContains(page, "From E1")
+        self.client.post(self.thread_url(self.e2), {"body": "From E2"})
+        self.assertEqual(Thread.objects.filter(wish=self.wish).count(), 2)
+        self.client.force_login(self.carol)
+        e1_page = self.client.get(self.thread_url())
+        self.assertContains(e1_page, "From E1")
+        self.assertNotContains(e1_page, "From E2")
+
+    def test_reading_never_creates_a_thread(self):
+        self.client.force_login(self.bob)
+        self.client.get(self.thread_url())
+        self.client.get(self.member_url(self.carol))
+        self.assertEqual(Thread.objects.count(), 0)
+
+
+class EventPageLinkTests(DiscussionScenario, TestCase):
+    def setUp(self):
+        self.build()
+        self.carol_wish = make_wish(self.carol, name="Scarf", events=[self.e1])
+
+    def test_links_for_others_never_for_oneself(self):
+        self.client.force_login(self.bob)
+        page = self.client.get(self.event_url())
+        self.assertContains(page, self.member_url(self.carol))
+        self.assertContains(page, self.member_url(self.anna))
+        self.assertNotContains(page, self.member_url(self.bob))
+        self.assertContains(page, self.thread_url(wish=self.carol_wish))
+
+    def test_the_owner_sees_nothing_about_her_own_wish_or_herself(self):
+        self.client.force_login(self.anna)
+        page = self.client.get(self.event_url())
+        self.assertNotContains(page, self.thread_url())
+        self.assertNotContains(page, self.member_url(self.anna))
+        self.assertContains(page, self.member_url(self.bob))

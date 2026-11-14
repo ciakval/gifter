@@ -276,6 +276,24 @@ def probes(fx):
         path = reverse(name, args=[fx.e1.pk, w1.pk])
         add(name, "POST", path)
         add(name, "GET", path)
+    # Discussions (Phase 5): own wishes and the giftee herself must answer a bare 404 before the
+    # body is validated; the co-member probes post an invalid body, which re-renders the form.
+    for label, event, wish, body in (
+        ("E1 own", fx.e1, w1, "Zqxsentinel hello"),
+        ("E2 own", fx.e2, fx.w3, "Zqxsentinel hello"),
+        ("E1 co-member", fx.e1, fx.wc, ""),
+    ):
+        path = reverse("wish_discussion", args=[event.pk, wish.pk])
+        add(f"wish_discussion {label}", "GET", path)
+        add(f"wish_discussion {label}", "POST", path, {"body": body})
+    for label, event, member, body in (
+        ("E1 self", fx.e1, fx.gita, "Zqxsentinel hello"),
+        ("E2 self", fx.e2, fx.gita, "Zqxsentinel hello"),
+        ("E1 co-member", fx.e1, fx.carl, ""),
+    ):
+        path = reverse("member_discussion", args=[event.pk, member.pk])
+        add(f"member_discussion {label}", "GET", path)
+        add(f"member_discussion {label}", "POST", path, {"body": body})
     for name in ("claim_purchased", "claim_release", "chip_in_leave", "claim_ack"):
         for wish in (w1, fx.w2):
             add(f"{name} W{wish.pk}", "POST", reverse(name, args=[wish.pk]))
