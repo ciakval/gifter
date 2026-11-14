@@ -31,6 +31,7 @@ urlpatterns = [
         discussion_views.member_discussion,
         name="member_discussion",
     ),
+    path("comments/<int:comment_pk>/delete/", discussion_views.comment_delete, name="comment_delete"),
     path("claims/<int:wish_pk>/purchased/", claim_views.claim_purchased, name="claim_purchased"),
     path("claims/<int:wish_pk>/release/", claim_views.claim_release, name="claim_release"),
     path("claims/<int:wish_pk>/leave/", claim_views.chip_in_leave, name="chip_in_leave"),

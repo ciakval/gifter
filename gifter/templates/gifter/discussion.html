@@ -14,6 +14,13 @@
       <div class="fw-semibold">{{ comment.author_name }}{% if comment.is_new %} <span class="badge text-bg-info">{% translate "New" %}</span>{% endif %}</div>
       <div class="small text-body-secondary">{{ comment.created_at|date:"DATETIME_FORMAT" }}</div>
       <div>{{ comment.body|linebreaksbr }}</div>
+      {% if comment.is_mine %}
+        <form method="post" action="{% url 'comment_delete' comment.pk %}" class="mt-1">
+          {% csrf_token %}
+          <input type="hidden" name="next" value="{{ thread_url }}">
+          <button type="submit" class="btn btn-outline-secondary btn-sm">{% translate "Delete" %}</button>
+        </form>
+      {% endif %}
     </div>
   {% empty %}
     <p class="text-body-secondary">{% translate "No comments yet. Start the discussion." %}</p>

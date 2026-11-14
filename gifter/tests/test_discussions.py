@@ -8,6 +8,7 @@ Run with DEBUG=1 (otherwise the production SSL redirect and fail-closed secrets 
 import importlib
 
 from django.contrib.auth import get_user_model
+from django.urls import NoReverseMatch, reverse
 from django.db import IntegrityError, migrations, transaction
 from datetime import timedelta
 
@@ -597,3 +598,82 @@ class SummariesForTests(DiscussionScenario, TestCase):
         self.assertLessEqual(len(ctx), 3)
         for q in ctx.captured_queries:
             self.assertNotIn('"body"', q["sql"])
+
+
+class CommentDeleteTests(DiscussionScenario, TestCase):
+    def setUp(self):
+        self.build()
+        self.thread = Thread.objects.create(event=self.e1, wish=self.wish, giftee=self.anna)
+        self.bobs = Comment.objects.create(thread=self.thread, author=self.bob, body="Bob says")
+        self.carols = Comment.objects.create(thread=self.thread, author=self.carol, body="Carol says")
+
+    def delete_url(self, comment):
+        return reverse("comment_delete", args=[comment.pk])
+
+    def test_the_author_deletes_and_returns_to_the_thread(self):
+        self.client.force_login(self.bob)
+        response = self.client.post(self.delete_url(self.bobs), {"next": self.thread_url()})
+        self.assertRedirects(response, self.thread_url(), fetch_redirect_response=False)
+        self.assertFalse(Comment.objects.filter(pk=self.bobs.pk).exists())
+        self.assertTrue(Thread.objects.filter(pk=self.thread.pk).exists())
+        self.assertTrue(Comment.objects.filter(pk=self.carols.pk).exists())
+        page = self.client.get(self.thread_url())
+        self.assertContains(page, "Comment deleted.")
+        self.assertNotContains(page, "Bob says")
+
+    def test_an_emptied_thread_shows_no_count_and_no_marker(self):
+        Comment.objects.filter(pk=self.carols.pk).delete()
+        self.client.force_login(self.carol)
+        self.assertContains(self.client.get(self.event_url()), MARKER)
+        self.client.force_login(self.bob)
+        self.client.post(self.delete_url(self.bobs), {"next": self.thread_url()})
+        self.client.force_login(self.carol)
+        page = self.client.get(self.event_url())
+        self.assertNotContains(page, MARKER)
+        self.assertNotContains(page, "comment)")
+
+    def test_everyone_else_gets_the_missing_comment_404_and_nothing_is_deleted(self):
+        self.client.force_login(self.carol)
+        baseline = self.client.post(reverse("comment_delete", args=[999999]))
+        self.assertEqual(baseline.status_code, 404)
+        stranger = make_user("zed", first_name="Zed")
+        for user in (self.carol, self.anna, stranger):
+            self.client.force_login(user)
+            response = self.client.post(self.delete_url(self.bobs))
+            self.assertEqual(response.status_code, 404, user)
+            self.assertEqual(response.content, baseline.content, user)
+        self.assertTrue(Comment.objects.filter(pk=self.bobs.pk).exists())
+
+    def test_get_is_not_allowed_and_signed_out_goes_to_sign_in(self):
+        self.client.force_login(self.bob)
+        self.assertEqual(self.client.get(self.delete_url(self.bobs)).status_code, 405)
+        self.client.logout()
+        response = self.client.post(self.delete_url(self.bobs))
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(Comment.objects.filter(pk=self.bobs.pk).exists())
+
+    def test_an_external_next_goes_to_the_events_list(self):
+        self.client.force_login(self.bob)
+        response = self.client.post(self.delete_url(self.bobs), {"next": "https://evil.example/x"})
+        self.assertRedirects(response, reverse("home"), fetch_redirect_response=False)
+
+    def test_nothing_can_edit_a_comment(self):
+        for name in ("comment_edit", "comment_update"):
+            with self.assertRaises(NoReverseMatch):
+                reverse(name)
+        names = {f.name for f in Comment._meta.get_fields()}
+        self.assertFalse({"updated_at", "edited_at"} & names)
+        self.client.force_login(self.carol)
+        self.client.post(self.delete_url(self.bobs), {"body": "Changed"})
+        self.bobs.refresh_from_db()
+        self.assertEqual(self.bobs.body, "Bob says")
+
+    def test_a_delete_form_appears_only_on_the_viewers_own_comments(self):
+        for user, own, other in (
+            (self.bob, self.bobs, self.carols),
+            (self.carol, self.carols, self.bobs),
+        ):
+            self.client.force_login(user)
+            page = self.client.get(self.thread_url())
+            self.assertContains(page, self.delete_url(own))
+            self.assertNotContains(page, self.delete_url(other))

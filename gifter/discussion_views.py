@@ -1,14 +1,15 @@
 """Participant discussion views (Phase 5). Owner pages never import this module."""
 
+from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.http import Http404
 from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils.translation import gettext
-from django.views.decorators.http import require_http_methods
+from django.views.decorators.http import require_http_methods, require_POST
 
 from . import discussions
-from .claim_views import _participant_wish_or_404
+from .claim_views import _back, _participant_wish_or_404
 from .forms import CommentForm
 from .views import _member_event_or_404
 
@@ -73,3 +74,12 @@ def member_discussion(request, pk, user_pk):
         post=lambda body: discussions.post_member_comment(request.user, event, member, body),
         thread_url=reverse("member_discussion", args=[event.pk, member.pk]),
     )
+
+
+@require_POST
+def comment_delete(request, comment_pk):
+    # Authors only; every miss (missing, foreign, giftee) is the same bare 404 (D-03, T-05-07).
+    if not discussions.delete_comment(request.user, comment_pk):
+        raise Http404()
+    messages.success(request, gettext("Comment deleted."))
+    return _back(request, "home")

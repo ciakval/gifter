@@ -294,6 +294,12 @@ def probes(fx):
         path = reverse("member_discussion", args=[event.pk, member.pk])
         add(f"member_discussion {label}", "GET", path)
         add(f"member_discussion {label}", "POST", path, {"body": body})
+    for comment_pk in (1, 999999):
+        add(
+            f"comment_delete C{comment_pk}",
+            "POST",
+            reverse("comment_delete", args=[comment_pk]),
+        )
     for name in ("claim_purchased", "claim_release", "chip_in_leave", "claim_ack"):
         for wish in (w1, fx.w2):
             add(f"{name} W{wish.pk}", "POST", reverse(name, args=[wish.pk]))
